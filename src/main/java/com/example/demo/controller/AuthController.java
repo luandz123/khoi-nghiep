@@ -1,5 +1,7 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.LoginRequest;
+import com.example.demo.dto.LoginResponse;
 import com.example.demo.dto.RegisterRequest;
 import com.example.demo.service.AuthService;
 import lombok.RequiredArgsConstructor;
@@ -22,5 +24,9 @@ public class AuthController {
         Map<String, String> response = new HashMap<>();
         response.put("message", "Đăng ký thành công!");
         return ResponseEntity.ok(response);
+    }
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
+        return ResponseEntity.ok(authService.login(request));
     }
 }
