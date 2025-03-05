@@ -8,25 +8,30 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Collections;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
-    
+
     private final AuthService authService;
-    
+
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         authService.register(request);
-        Map<String, String> response = new HashMap<>();
-        response.put("message", "Đăng ký thành công!");
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(Collections.singletonMap("message", "Đăng ký thành công"));
     }
+    
+    @PostMapping("/register-admin")
+    public ResponseEntity<?> registerAdmin(@RequestBody AuthService.RegisterAdminRequest request) {
+        authService.registerAdmin(request);
+        return ResponseEntity.ok(Collections.singletonMap("message", "Đăng ký admin thành công"));
+    }
+
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+        LoginResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
     }
 }

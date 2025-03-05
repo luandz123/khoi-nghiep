@@ -1,0 +1,74 @@
+.update-page {
+  background: #ffffff;
+  padding: 20px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.update-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="file"] {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 16px;
+  transition: border-color 0.3s ease;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="email"]:focus,
+.form-group input[type="file"]:focus {
+  border-color: #007bff;
+  outline: none;
+}
+
+.avatar-preview {
+  text-align: center;
+}
+
+.avatar-preview img {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #ccc;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+}
+
+.save-button {
+  background-color: #28a745;
+  color: #fff;
+  border: none;
+  padding: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.cancel-button {
+  background-color: #dc3545;
+  color: #fff;
+  border: none;
+  padding: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.save-button:hover,
+.cancel-button:hover {
+  opacity: 0.9;
+}

@@ -19,7 +19,8 @@ public class ApplicationConfig {
                 .map(user -> org.springframework.security.core.userdetails.User
                         .withUsername(user.getEmail())
                         .password(user.getPassword())
-                        .roles(user.getRole())
+                        // Nếu trong DB role được lưu với prefix "ROLE_", thì remove prefix để so sánh với hasRole("ADMIN")
+                        .roles(user.getRole().replace("ROLE_", ""))
                         .build())
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }

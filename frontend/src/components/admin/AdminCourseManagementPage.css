@@ -1,0 +1,59 @@
+.admin-course-management-page {
+  background: #ffffff;
+  padding: 20px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+h1 {
+  margin-bottom: 20px;
+}
+
+.course-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.course-table th,
+.course-table td {
+  border: 1px solid #dee2e6;
+  padding: 10px;
+  text-align: left;
+}
+
+.course-table th {
+  background-color: #f8f9fa;
+}
+
+.course-thumbnail {
+  width: 80px;
+  height: auto;
+  border-radius: 4px;
+}
+
+.edit-button,
+.delete-button {
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  margin-right: 5px;
+  transition: background-color 0.3s ease;
+}
+
+.edit-button {
+  background-color: #28a745;
+}
+
+.edit-button:hover {
+  background-color: #1e7e34;
+}
+
+.delete-button {
+  background-color: #dc3545;
+}
+
+.delete-button:hover {
+  background-color: #b02a37;
+}

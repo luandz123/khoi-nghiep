@@ -1,0 +1,258 @@
+/* Updated Navbar.css */
+
+/* Navbar chính được giữ ở vị trí cố định, không có khoảng cách ngoài */
+.navbar {
+  width: 100%;
+  height: 70px;
+  background-color: #ffffff;
+  box-shadow: none;
+  border: none;
+  margin: 0;
+  padding: 0;
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+/* Container đảm bảo nội dung không quá rộng */
+.navbar-container {
+  width: 100%;
+  max-width: 1400px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 30px;
+}
+
+/* Logo và menu không thay đổi */
+.navbar-left .logo {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ff6b6b;
+  text-decoration: none;
+  letter-spacing: 0.5px;
+}
+
+.navbar-center {
+  display: flex;
+  gap: 30px;
+}
+
+.navbar-center a {
+  text-decoration: none;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  padding: 8px 0;
+  position: relative;
+}
+
+.navbar-center a:hover {
+  color: #ff6b6b;
+}
+
+.navbar-center a::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: 0;
+  left: 0;
+  background-color: #ff6b6b;
+  transition: width 0.3s ease;
+}
+
+.navbar-center a:hover::after {
+  width: 100%;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* Thanh tìm kiếm được chỉnh sửa */
+.search-box {
+  display: flex;
+  align-items: center;
+  background-color: #f5f5f7;
+  border-radius: 24px;
+  width: 300px;               /* Tăng chiều dài thanh tìm kiếm */
+  padding: 8px 16px;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.search-box:focus-within {
+  background-color: #ffffff;
+  border-color: #ff6b6b;
+  box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.1);
+}
+
+/* Icon tìm kiếm không sử dụng vị trí absolute, hiển thị inline */
+.search-icon {
+  color: #777;
+  margin-right: 8px;
+  position: relative;
+}
+
+/* Input tìm kiếm, chiếm đủ không gian mà không bị che bởi icon */
+.search-box input {
+  border: none;
+  background: none;
+  outline: none;
+  font-size: 14px;
+  width: 100%;
+  color: #333;
+}
+
+/* Các mục dropdown, nút đăng nhập,... giữ nguyên */
+.user-dropdown {
+  position: relative;
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 24px;
+  transition: all 0.2s ease;
+}
+
+.user-menu:hover {
+  background-color: #f5f5f7;
+}
+
+.user-icon {
+  font-size: 24px;
+  color: #555;
+}
+
+.username {
+  font-weight: 500;
+  font-size: 15px;
+  color: #333;
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  width: 200px;
+  padding: 8px 0;
+  z-index: 10;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  color: #333;
+  text-decoration: none;
+  font-size: 15px;
+  transition: background-color 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background-color: #f5f5f7;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: #eaeaea;
+  margin: 8px 0;
+}
+
+.logout-btn {
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 15px;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  color: #ff6b6b;
+  transition: background-color 0.2s ease;
+}
+
+.logout-btn:hover {
+  background-color: #fff1f1;
+}
+
+.login-btn, .register-btn {
+  text-decoration: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.login-btn {
+  color: #ff6b6b;
+  border: 1.5px solid #ff6b6b;
+  margin-right: 5px;
+}
+
+.login-btn:hover {
+  background-color: rgba(255, 107, 107, 0.05);
+  transform: translateY(-1px);
+}
+
+.register-btn {
+  background-color: #ff6b6b;
+  color: #fff;
+}
+
+.register-btn:hover {
+  background-color: #ff5252;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(255, 107, 107, 0.25);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .navbar-container {
+    padding: 0 16px;
+  }
+  
+  .navbar-center {
+    gap: 15px;
+  }
+  
+  .search-box {
+    width: 160px;
+  }
+  
+  .username {
+    display: none;
+  }
+}

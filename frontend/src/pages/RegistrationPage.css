@@ -1,0 +1,77 @@
+/* RegistrationPage.css */
+.registration-page {
+  padding: 2.5rem;
+  background: linear-gradient(135deg, #ffffff, #f5f9ff);
+  max-width: 800px;
+  margin: 0 auto;
+  border-radius: 15px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.registration-page:hover {
+  transform: translateY(-2px);
+}
+
+.courses-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.course-card {
+  background: linear-gradient(135deg, #f0f0f0, #e0e8f0);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.course-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.course-card h2 {
+  margin: 0;
+  font-size: 1.6rem;
+  color: #1a2b3c;
+  background: linear-gradient(45deg, #1a2b3c, #00bcd4);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.course-card p {
+  font-size: 1rem;
+  color: #666;
+  margin: 1rem 0;
+  line-height: 1.6;
+}
+
+.register-button {
+  background: linear-gradient(45deg, #007bff, #00bcd4);
+  color: #fff;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: 500;
+  box-shadow: 0 5px 15px rgba(0, 123, 255, 0.4);
+  transition: background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.register-button:hover {
+  background: linear-gradient(45deg, #0056b3, #0089a9);
+  transform: translateY(-2px);
+  box-shadow: 0 7px 20px rgba(0, 123, 255, 0.6);
+}
+
+.message {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+  color: #28a745;
+  font-weight: bold;
+  text-shadow: 0 1px 3px rgba(40, 167, 69, 0.2);
+}

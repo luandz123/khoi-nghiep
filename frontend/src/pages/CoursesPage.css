@@ -1,0 +1,195 @@
+/* Reset mặc định */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Arial', sans-serif;
+}
+
+body {
+  background-color: #f4f4f4;
+  color: #333;
+  line-height: 1.6;
+}
+
+/* Navbar */
+.navbar {
+  background: #007bff;
+  padding: 15px 0;
+  position: sticky;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
+}
+
+.navbar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 90%;
+  margin: auto;
+}
+
+.logo {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #fff;
+}
+
+.nav-menu {
+  list-style: none;
+  display: flex;
+}
+
+.nav-menu li {
+  margin-left: 20px;
+}
+
+.nav-menu a {
+  text-decoration: none;
+  color: #fff;
+  font-size: 1rem;
+  transition: 0.3s;
+}
+
+.nav-menu a:hover {
+  color: #f8d210;
+}
+
+/* Banner */
+.banner {
+  position: relative;
+  height: 350px;
+  background: url('https://source.unsplash.com/1600x900/?technology,education') center/cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.banner-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 123, 255, 0.6);
+}
+
+.banner-content {
+  position: relative;
+  color: #fff;
+}
+
+.banner h1 {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+}
+
+.banner p {
+  font-size: 1.2rem;
+}
+
+.cta-button {
+  margin-top: 15px;
+  padding: 10px 20px;
+  background: #f8d210;
+  color: #333;
+  font-size: 1rem;
+  border: none;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.cta-button:hover {
+  background: #ffc107;
+}
+
+/* Featured Courses */
+.featured-courses {
+  padding: 40px 10%;
+  background: #fff;
+}
+
+.featured-courses h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 2rem;
+}
+
+.courses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.course-card {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+  transition: transform 0.3s;
+  text-decoration: none;
+  color: inherit;
+}
+
+.course-card:hover {
+  transform: translateY(-5px);
+}
+
+.course-image {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 5px;
+}
+
+.course-title {
+  font-size: 1.2rem;
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+.course-instructor,
+.course-students {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Footer */
+.footer {
+  position: relative;
+  background: #007bff;
+  color: white;
+  text-align: center;
+  padding: 20px 0;
+  margin-top: 40px;
+}
+
+.waves {
+  position: absolute;
+  top: -30px;
+  left: 0;
+  width: 100%;
+}
+
+.menu {
+  list-style: none;
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.menu__item {
+  margin: 0 15px;
+}
+
+.menu__link {
+  text-decoration: none;
+  color: white;
+  transition: 0.3s;
+}
+
+.menu__link:hover {
+  color: #f8d210;
+}

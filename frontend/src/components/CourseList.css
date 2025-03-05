@@ -1,0 +1,107 @@
+/* Course List Styles */
+.course-card {
+  transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.course-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.course-image {
+  object-fit: cover;
+}
+
+.course-title {
+  font-size: 1.2rem;
+  color: #1a237e;
+}
+
+.course-description {
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.course-button {
+  font-weight: bold;
+  border-radius: 8px;
+}
+
+/* Course Detail Styles */
+.course-detail {
+  max-width: 900px;
+  margin: auto;
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.course-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.course-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #1a237e;
+}
+
+.course-meta p {
+  font-size: 1rem;
+  margin: 5px 0;
+}
+
+.course-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.cta-button, .favorite-button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.cta-button {
+  background: linear-gradient(45deg, #2196F3 30%, #21CBF3 90%);
+  color: white;
+}
+
+.cta-button:hover {
+  background: linear-gradient(45deg, #1976D2 30%, #1AC6E9 90%);
+}
+
+.favorite-button {
+  background: #f8f9fa;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.favorite-button:hover {
+  background: #e0e0e0;
+}
+
+.video-container {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.course-content {
+  list-style: none;
+  padding: 0;
+}
+
+.course-content li {
+  background: #f5f5f5;
+  margin: 5px 0;
+  padding: 10px;
+  border-radius: 8px;
+}

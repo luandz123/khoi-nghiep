@@ -1,0 +1,134 @@
+.course-detail-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px;
+}
+
+.course-header {
+  width: 100%;
+  max-width: 900px;
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.course-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #1a237e;
+  margin-bottom: 10px;
+}
+
+.course-meta {
+  font-size: 1rem;
+  color: #424242;
+  line-height: 1.6;
+}
+
+.course-meta p {
+  margin: 5px 0;
+}
+
+.course-actions {
+  margin-top: 15px;
+}
+
+.cta-button, .favorite-button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  margin: 5px;
+}
+
+.cta-button {
+  background: linear-gradient(45deg, #1e88e5 30%, #1565c0 90%);
+  color: white;
+  border: none;
+}
+
+.cta-button:hover {
+  background: linear-gradient(45deg, #0d47a1 30%, #0d47a1 90%);
+}
+
+.favorite-button {
+  background: #ff9800;
+  color: white;
+  border: none;
+}
+
+.favorite-button:hover {
+  background: #e65100;
+}
+
+.course-description {
+  max-width: 900px;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 20px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  font-size: 1.1rem;
+  color: #424242;
+}
+
+.course-category {
+  font-size: 1rem;
+  color: #757575;
+  margin-top: 10px;
+}
+
+.video-container {
+  width: 100%;
+  max-width: 900px;
+  margin-top: 20px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.course-details {
+  width: 100%;
+  max-width: 900px;
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 20px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.course-details h2 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1a237e;
+  margin-bottom: 10px;
+}
+
+.course-content {
+  list-style: none;
+  padding: 0;
+}
+
+.course-content li {
+  padding: 10px 0;
+  font-size: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.course-content li:last-child {
+  border-bottom: none;
+}
+
+.loading {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1a237e;
+  text-align: center;
+  margin-top: 50px;
+}
