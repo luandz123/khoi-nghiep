@@ -27,10 +27,15 @@ public class User {
     // Added fields for user details
     private String name;
     private String avatar;
-        private LocalDateTime createdAt;
+    private LocalDateTime createdAt;
 
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
+    }
+    
+    // Add this method to support AdminDashboardService call
+    public String getFullName() {
+        return name != null ? name : email;
     }
 }

@@ -41,9 +41,7 @@ const Sidebar = () => {
         </div>
       </div>
 
-      <div id="nav-footer">
-        <p className="footer-text">©2025 LuanAcademy | All Rights Reserved</p>
-      </div>
+      
     </div>
   );
 };

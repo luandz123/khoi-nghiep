@@ -2,19 +2,17 @@
 
 #nav-bar {
   width: 250px;
-  height: calc(100vh + 30px); /* Increase height by 30px */
+  height: calc(100vh - 350px); /* Reduced height to accommodate footer (100vh - navbar - footer) */
   background-color: #ffffff;
-  box-shadow: none;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   position: fixed;
   left: 0;
-  top: 0;
+  top: 70px;
   padding: 20px 0;
   transition: all 0.3s ease;
   z-index: 1000;
-  
 }
 
 #nav-content {

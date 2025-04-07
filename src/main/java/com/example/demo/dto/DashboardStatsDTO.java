@@ -1,20 +1,26 @@
 package com.example.demo.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
 import java.util.List;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class DashboardStatsDTO {
-    private Long totalUsers;
-    private Long totalCourses;
-    private Long totalOrders;
+    private long totalUsers;
+    private long totalCourses;
+    private long totalOrders;
     private BigDecimal totalRevenue;
+    private double userChangePercentage;
+    private double courseChangePercentage;
+    private double orderChangePercentage;
+    private double revenueChangePercentage;
     private List<MonthlyRevenueDTO> revenueByMonth;
-    private Double userChangePercentage;
-    private Double courseChangePercentage;
-    private Double orderChangePercentage;
-    private Double revenueChangePercentage;
+    private List<CategoryDistributionDTO> categoryDistribution;
 }

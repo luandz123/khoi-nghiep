@@ -4,6 +4,7 @@ import com.example.demo.dto.*;
 import com.example.demo.entity.*;
 import com.example.demo.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,8 +20,25 @@ public class AdminOrderService {
     private final ProductRepository productRepository;
     private final EmailService emailService;
 
-    public List<OrderResponse> getAllOrders(String status, String search) {
-        return orderRepository.findByFilters(status, search).stream()
+    public List<OrderResponse> getAllOrders(String status, String search, String sort) {
+        // Xử lý tham số sắp xếp từ frontend
+        String sortField = "createdAt"; // Mặc định sắp xếp theo ngày tạo
+        Sort.Direction direction = Sort.Direction.DESC; // Mặc định giảm dần
+
+        if (sort != null && !sort.isEmpty()) {
+            String[] sortParams = sort.split(",");
+            if (sortParams.length > 0) {
+                sortField = sortParams[0];
+                if (sortParams.length > 1 && "asc".equalsIgnoreCase(sortParams[1])) {
+                    direction = Sort.Direction.ASC;
+                }
+            }
+        }
+
+        Sort sortObject = Sort.by(direction, sortField);
+        List<Order> orders = orderRepository.findByFiltersWithSort(status, search, sortObject);
+        
+        return orders.stream()
                 .map(this::mapToOrderResponse)
                 .collect(Collectors.toList());
     }
@@ -40,7 +58,12 @@ public class AdminOrderService {
         order.setItems(createOrderItems(order, request.getItems()));
         
         Order savedOrder = orderRepository.save(order);
-        emailService.sendOrderConfirmation(savedOrder);
+        try {
+            emailService.sendOrderConfirmation(savedOrder);
+        } catch (Exception e) {
+            // Log the error but continue
+            System.err.println("Failed to send confirmation email: " + e.getMessage());
+        }
         return mapToOrderResponse(savedOrder);
     }
 
@@ -51,10 +74,15 @@ public class AdminOrderService {
             OrderStatus newStatus = OrderStatus.valueOf(status.toUpperCase());
             order.setStatus(newStatus);
             order = orderRepository.save(order);
-            emailService.sendOrderStatusUpdate(order);
+            try {
+                emailService.sendOrderStatusUpdate(order);
+            } catch (Exception e) {
+                // Log the error but continue
+                System.err.println("Failed to send status update email: " + e.getMessage());
+            }
             return mapToOrderResponse(order);
         } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Trạng thái không hợp lệ");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Trạng thái không hợp lệ: " + status);
         }
     }
 
@@ -85,9 +113,12 @@ public class AdminOrderService {
         response.setStatus(order.getStatus().name());
         response.setCreatedAt(order.getCreatedAt());
         
-        response.setItems(order.getItems().stream()
+        List<OrderItemResponse> items = order.getItems().stream()
             .map(this::mapToOrderItemResponse)
-            .collect(Collectors.toList()));
+            .collect(Collectors.toList());
+        
+        response.setItems(items);
+        response.setItemCount(items.size()); // Thêm số lượng sản phẩm
         
         return response;
     }

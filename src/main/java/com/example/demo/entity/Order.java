@@ -21,6 +21,10 @@ public class Order {
     @Column(nullable = false)
     private String customerEmail;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
 
@@ -35,6 +39,11 @@ public class Order {
     private OrderStatus status = OrderStatus.PENDING;
 
     private LocalDateTime createdAt;
+
+    // Helper method to match the method name used in AdminDashboardService
+    public BigDecimal getTotalAmount() {
+        return totalPrice;
+    }
 
     @PrePersist
     protected void onCreate() {

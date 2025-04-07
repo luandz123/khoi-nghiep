@@ -5,13 +5,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MonthlyRevenueDTO {
-    private String month;
-    private BigDecimal revenue;
+public class CategoryDistributionDTO {
+    private String name;
+    private int value;
 }

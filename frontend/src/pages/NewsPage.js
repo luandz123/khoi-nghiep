@@ -12,24 +12,45 @@ import {
   Button,
   TextField,
   Pagination,
-  IconButton
+  Chip,
+  InputAdornment,
+  Divider
 } from '@mui/material';
-import {
-  FaSearch,
-  FaHome,
-  FaNewspaper,
-  FaBox,
- 
-} from 'react-icons/fa';
+import { motion } from 'framer-motion';
+import { FaSearch, FaCalendarAlt, FaUser, FaTag } from 'react-icons/fa';
 import './NewsPage.css';
 
 const NewsPage = () => {
   const [news, setNews] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
-
+  const [selectedCategory, setSelectedCategory] = useState('');
+  
   const navigate = useNavigate();
   const newsPerPage = 6;
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100
+      }
+    }
+  };
 
   useEffect(() => {
     // Giả lập fetch dữ liệu từ backend (thay bằng API thực tế)
@@ -37,12 +58,14 @@ const NewsPage = () => {
       try {
         const dummyNews = Array.from({ length: 12 }, (_, index) => ({
           id: index + 1,
-          title: `Tin tức ${index + 1} - Lập trình ${index + 1}`,
-          description: `Mô tả ngắn gọn về tin tức ${index + 1} liên quan đến lập trình và công nghệ tại LuanAcademy.`,
-          thumbnail: `https://via.placeholder.com/300x200?text=News${index + 1}`,
-          createdDate: new Date().toISOString(),
-          author: `Tác giả ${index + 1}`,
-          category: index % 2 === 0 ? 'Công nghệ' : 'Lập trình'
+          title: `${index % 2 === 0 ? 'Khóa học mới' : 'Tin công nghệ'} - ${index % 3 === 0 ? 'Lập trình React' : index % 3 === 1 ? 'Phát triển web' : 'AI và Machine Learning'} ${index + 1}`,
+          description: `${index % 2 === 0 
+            ? `LuanAcademy vừa ra mắt khóa học mới giúp bạn nâng cao kỹ năng lập trình. Khóa học được thiết kế bởi các chuyên gia hàng đầu, cung cấp kiến thức từ cơ bản đến nâng cao.` 
+            : `Những xu hướng công nghệ mới nhất đang định hình tương lai ngành IT. Cập nhật những công nghệ hot nhất hiện nay và cách chúng ảnh hưởng đến thị trường việc làm.`}`,
+          thumbnail: `https://source.unsplash.com/500x300/?coding,technology,${index + 1}`,
+          createdDate: new Date(Date.now() - index * 86400000).toISOString(),
+          author: `${index % 3 === 0 ? 'Nguyễn Văn Luân' : index % 3 === 1 ? 'Trần Minh Quân' : 'Lê Thị Hồng'}`,
+          category: index % 3 === 0 ? 'Khóa học' : index % 3 === 1 ? 'Công nghệ' : 'Tin tức'
         }));
         setNews(dummyNews);
       } catch (error) {
@@ -52,196 +75,374 @@ const NewsPage = () => {
     fetchNews();
   }, []);
 
-
+  const categories = ['Tất cả', 'Khóa học', 'Công nghệ', 'Tin tức'];
 
   const filteredNews = news.filter(
-    (item) =>
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.category.toLowerCase().includes(searchTerm.toLowerCase())
+    (item) => {
+      const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.author.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesCategory = selectedCategory === '' || selectedCategory === 'Tất cả' || 
+        item.category === selectedCategory;
+      
+      return matchesSearch && matchesCategory;
+    }
   );
 
   const paginatedNews = filteredNews.slice((page - 1) * newsPerPage, page * newsPerPage);
   const totalPages = Math.ceil(filteredNews.length / newsPerPage);
 
-  return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#f5f9ff', pt: 8 }}>
-      <Container maxWidth="lg">
-        
-     
-      
+  const handleCategoryClick = (category) => {
+    setSelectedCategory(category === 'Tất cả' ? '' : category);
+    setPage(1);
+  };
 
-        {/* Main Content */}
-        <Box >
-          <Typography variant="h4" align="center" sx={{ mb: 4, fontWeight: 'bold', color: '#1a2b3c', mt: 4 }}>
-            Tin Tức Mới Nhất
+  return (
+    <Box sx={{ minHeight: '100vh', backgroundColor: '#f8fafc', paddingTop: '80px', paddingBottom: '60px' }}>
+      <Container maxWidth="lg">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <Typography variant="h3" align="center" sx={{
+            fontWeight: 800,
+            marginBottom: '8px',
+            background: 'linear-gradient(90deg, #6366f1, #a855f7)',
+            WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
+            color: 'transparent'
+          }}>
+            Tin Tức & Bài Viết
           </Typography>
-          <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
-            <TextField
-              variant="outlined"
-              placeholder="Tìm kiếm tin tức..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              sx={{
-                width: 400,
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 30,
-                  p: '0.9rem 1.2rem 0.9rem 3rem',
-                  backgroundColor: 'white',
-                  boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
-                  '& fieldset': { border: '2px solid #ddd' },
-                  '&:hover fieldset': { border: '2px solid #00bcd4' },
-                  '&.Mui-focused fieldset': { border: '2px solid #00bcd4', boxShadow: '0 4px 15px rgba(0, 188, 212, 0.3)' }
+          <Typography variant="body1" align="center" sx={{ mb: 5, color: '#64748b', maxWidth: 700, mx: 'auto' }}>
+            Cập nhật những thông tin mới nhất về khóa học, công nghệ và tin tức từ LuanAcademy
+          </Typography>
+        </motion.div>
+
+        {/* Search and Filter Section */}
+        <Box sx={{ mb: 5 }}>
+          <Grid container spacing={2} alignItems="center" justifyContent="center">
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                variant="outlined"
+                placeholder="Tìm kiếm tin tức..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <FaSearch style={{ color: '#6366f1' }} />
+                    </InputAdornment>
+                  ),
+                  sx: {
+                    borderRadius: 2,
+                    bgcolor: 'white',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                    '& fieldset': {
+                      borderColor: '#e2e8f0'
+                    },
+                    '&:hover fieldset': {
+                      borderColor: '#6366f1'
+                    }
+                  }
+                }}
+              />
+            </Grid>
+          </Grid>
+
+          {/* Categories Filter */}
+          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mt: 3, flexWrap: 'wrap' }}>
+            {categories.map((category) => (
+              <Chip
+                key={category}
+                label={category}
+                clickable
+                onClick={() => handleCategoryClick(category)}
+                variant={selectedCategory === category || (category === 'Tất cả' && selectedCategory === '') ? 'filled' : 'outlined'}
+                color="primary"
+                sx={{
+                  px: 2,
+                  py: 2.5,
+                  fontSize: '0.9rem',
+                  fontWeight: 500,
+                  borderRadius: '50px',
+                  backgroundColor: selectedCategory === category || (category === 'Tất cả' && selectedCategory === '') 
+                    ? 'linear-gradient(90deg, #6366f1, #a855f7)' 
+                    : 'transparent',
+                  '&:hover': {
+                    backgroundColor: selectedCategory === category || (category === 'Tất cả' && selectedCategory === '')
+                      ? 'linear-gradient(90deg, #5253cc, #9146e0)'
+                      : 'rgba(99, 102, 241, 0.1)'
+                  }
+                }}
+              />
+            ))}
+          </Box>
+        </Box>
+
+        {/* Featured News Item - First Item Larger */}
+        {paginatedNews.length > 0 && page === 1 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <Card 
+              sx={{ 
+                mb: 5, 
+                borderRadius: 3, 
+                overflow: 'hidden',
+                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.08)',
+                transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                '&:hover': {
+                  transform: 'translateY(-8px)',
+                  boxShadow: '0 15px 40px rgba(0, 0, 0, 0.12)'
                 }
               }}
-              InputProps={{
-                startAdornment: (
-                  <FaSearch
-                    style={{ position: 'absolute', left: '1.2rem', top: '50%', transform: 'translateY(-50%)', color: '#666', fontSize: '1.2rem' }}
-                  />
-                )
-              }}
-            />
-          </Box>
-          <Grid container spacing={3}>
-            {paginatedNews.map((newsItem) => (
-              <Grid item xs={12} sm={6} md={4} key={newsItem.id}>
-                <Card className="news-card" sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 2, boxShadow: '0 5px 15px rgba(0, 0, 0, 0.1)', transition: 'all 0.3s ease' }}>
+            >
+              <Grid container>
+                <Grid item xs={12} md={6}>
                   <CardMedia
                     component="img"
-                    height="200"
-                    image={newsItem.thumbnail}
-                    alt={newsItem.title}
-                    sx={{ objectFit: 'cover', borderRadius: '12px 12px 0 0', transition: 'opacity 0.3s ease' }}
+                    height="400"
+                    image={paginatedNews[0].thumbnail}
+                    alt={paginatedNews[0].title}
+                    sx={{ 
+                      objectFit: 'cover',
+                      height: '100%'
+                    }}
                   />
-                  <CardContent sx={{ flexGrow: 1, p: '1.5rem' }}>
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontWeight: 'bold',
-                        mb: 1,
-                        background: 'linear-gradient(45deg, #1a2b3c, #00bcd4)',
-                        WebkitBackgroundClip: 'text',
-                        backgroundClip: 'text',
-                        color: 'transparent'
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <CardContent sx={{ p: 4, height: '100%', display: 'flex', flexDirection: 'column' }}>
+                    <Chip 
+                      label={paginatedNews[0].category} 
+                      color="primary" 
+                      size="small"
+                      sx={{ 
+                        alignSelf: 'flex-start', 
+                        mb: 2, 
+                        borderRadius: '50px',
+                        background: 'linear-gradient(90deg, #6366f1, #a855f7)'
                       }}
-                    >
-                      {newsItem.title}
+                    />
+                    <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 2 }}>
+                      {paginatedNews[0].title}
                     </Typography>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', color: '#666' }}
-                    >
-                      {newsItem.description}
+                    <Typography variant="body1" color="text.secondary" sx={{ mb: 3, flex: 1 }}>
+                      {paginatedNews[0].description}
                     </Typography>
-                    <Typography variant="caption" sx={{ mt: 1, color: '#999', display: 'block' }}>
-                      {new Date(newsItem.createdDate).toLocaleDateString()} | {newsItem.author}
-                    </Typography>
-                  </CardContent>
-                  <CardActions sx={{ p: '1rem', justifyContent: 'center' }}>
-                    <Button
-                      variant="contained"
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3, color: '#64748b' }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <FaCalendarAlt />
+                        <Typography variant="body2">
+                          {new Date(paginatedNews[0].createdDate).toLocaleDateString('vi-VN')}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <FaUser />
+                        <Typography variant="body2">
+                          {paginatedNews[0].author}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    
+                    <Button 
+                      variant="contained" 
+                      fullWidth
+                      onClick={() => navigate(`/news/${paginatedNews[0].id}`)}
                       sx={{
-                        background: 'linear-gradient(45deg, #ffd700, #ffcc00)',
-                        color: '#1a2b3c',
-                        p: '0.8rem 2rem',
-                        borderRadius: 30,
+                        py: 1.5,
+                        borderRadius: 8,
                         fontWeight: 600,
-                        fontSize: '1rem',
-                        boxShadow: '0 5px 15px rgba(255, 215, 0, 0.5)',
-                        transition: 'all 0.3s ease',
+                        background: 'linear-gradient(90deg, #6366f1, #a855f7)',
                         '&:hover': {
-                          background: 'linear-gradient(45deg, #ffcc00, #ffaa00)',
-                          transform: 'translateY(-2px)',
-                          boxShadow: '0 7px 20px rgba(255, 215, 0, 0.7)'
+                          background: 'linear-gradient(90deg, #5253cc, #9146e0)',
+                          boxShadow: '0 8px 20px rgba(99, 102, 241, 0.3)'
                         }
                       }}
-                      onClick={() => navigate(`/news/${newsItem.id}`)}
                     >
-                      Đọc thêm
+                      Đọc chi tiết
                     </Button>
-                  </CardActions>
-                </Card>
+                  </CardContent>
+                </Grid>
               </Grid>
-            ))}
+            </Card>
+          </motion.div>
+        )}
+
+        <Divider sx={{ my: 5, width: '100%', maxWidth: '200px', mx: 'auto', borderColor: '#e2e8f0' }} />
+
+        {/* News Grid */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <Grid container spacing={3}>
+            {paginatedNews.length > 0 ? (
+              paginatedNews.map((newsItem, index) => {
+                // Skip the first item on the first page since it's displayed as featured
+                if (index === 0 && page === 1) return null;
+                
+                return (
+                  <Grid item xs={12} sm={6} md={4} key={newsItem.id}>
+                    <motion.div variants={itemVariants}>
+                      <Card 
+                        className="news-card"
+                        sx={{ 
+                          height: '100%',
+                          borderRadius: 3,
+                          overflow: 'hidden',
+                          boxShadow: '0 5px 15px rgba(0,0,0,0.05)',
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            transform: 'translateY(-8px)',
+                            boxShadow: '0 12px 30px rgba(0,0,0,0.1)'
+                          }
+                        }}
+                      >
+                        <Box sx={{ position: 'relative' }}>
+                          <CardMedia
+                            component="img"
+                            height="200"
+                            image={newsItem.thumbnail}
+                            alt={newsItem.title}
+                            sx={{ 
+                              transition: 'transform 0.6s',
+                              '&:hover': {
+                                transform: 'scale(1.05)'
+                              }
+                            }}
+                          />
+                          <Chip 
+                            label={newsItem.category} 
+                            color="primary" 
+                            size="small"
+                            sx={{ 
+                              position: 'absolute', 
+                              top: 12, 
+                              left: 12,
+                              background: 'linear-gradient(90deg, #6366f1, #a855f7)',
+                              fontWeight: 500
+                            }}
+                          />
+                        </Box>
+                        <CardContent sx={{ p: 3 }}>
+                          <Typography 
+                            variant="h6" 
+                            component="h2" 
+                            sx={{ 
+                              fontWeight: 700, 
+                              mb: 2,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              lineHeight: 1.4
+                            }}
+                          >
+                            {newsItem.title}
+                          </Typography>
+                          <Typography 
+                            variant="body2" 
+                            color="text.secondary"
+                            sx={{ 
+                              mb: 2,
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 3,
+                              WebkitBoxOrient: 'vertical',
+                              height: '4.5em'
+                            }}
+                          >
+                            {newsItem.description}
+                          </Typography>
+                          
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', mb: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <FaCalendarAlt size={12} />
+                              <Typography variant="caption">
+                                {new Date(newsItem.createdDate).toLocaleDateString('vi-VN')}
+                              </Typography>
+                            </Box>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                              <FaUser size={12} />
+                              <Typography variant="caption">
+                                {newsItem.author}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </CardContent>
+                        
+                        <CardActions sx={{ p: 3, pt: 0 }}>
+                          <Button 
+                            variant="outlined" 
+                            fullWidth
+                            onClick={() => navigate(`/news/${newsItem.id}`)}
+                            sx={{
+                              borderRadius: 8,
+                              borderColor: '#6366f1',
+                              color: '#6366f1',
+                              '&:hover': {
+                                borderColor: '#5253cc',
+                                backgroundColor: 'rgba(99, 102, 241, 0.04)'
+                              }
+                            }}
+                          >
+                            Đọc chi tiết
+                          </Button>
+                        </CardActions>
+                      </Card>
+                    </motion.div>
+                  </Grid>
+                );
+              })
+            ) : (
+              <Grid item xs={12}>
+                <Box sx={{ textAlign: 'center', py: 6 }}>
+                  <Typography variant="h6" sx={{ color: '#64748b', mb: 2 }}>
+                    Không tìm thấy tin tức nào phù hợp
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#94a3b8' }}>
+                    Vui lòng thử tìm kiếm với từ khóa khác hoặc xem tất cả tin tức
+                  </Typography>
+                  <Button
+                    variant="outlined"
+                    sx={{ mt: 3 }}
+                    onClick={() => {
+                      setSearchTerm('');
+                      setSelectedCategory('');
+                    }}
+                  >
+                    Xem tất cả tin tức
+                  </Button>
+                </Box>
+              </Grid>
+            )}
           </Grid>
-          <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+        </motion.div>
+
+        {totalPages > 1 && (
+          <Box sx={{ mt: 5, display: 'flex', justifyContent: 'center' }}>
             <Pagination
               count={totalPages}
               page={page}
               onChange={(event, value) => setPage(value)}
               color="primary"
-              sx={{
-                '& .MuiPaginationItem-root': {
-                  color: '#1a2b3c',
-                  '&.Mui-selected': { background: 'linear-gradient(45deg, #ff4500, #ff6f61)', color: 'white' }
-                }
-              }}
+              variant="outlined"
+              shape="rounded"
+              size="large"
             />
           </Box>
-        </Box>
+        )}
       </Container>
-
-      {/* Footer */}
-      <Box
-        className="footer"
-        sx={{ background: 'linear-gradient(135deg, #1a2b3c, #2d4a6c)', color: 'white', p: '2.5rem 1.5rem', position: 'relative', textAlign: 'center', boxShadow: '0 -5px 15px rgba(0, 0, 0, 0.1)', mt: 8 }}
-      >
-        <Box className="waves">
-          <Box className="wave" id="wave1" />
-          <Box className="wave" id="wave2" />
-          <Box className="wave" id="wave3" />
-          <Box className="wave" id="wave4" />
-        </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5, mb: 2 }}>
-          <IconButton
-            sx={{
-              color: 'white',
-              fontSize: '1.4rem',
-              p: '0.8rem',
-              borderRadius: 50,
-              '&:hover': { color: '#ff4500', background: 'rgba(255, 69, 0, 0.1)', transform: 'scale(1.1)' }
-            }}
-          >
-            <FaHome />
-          </IconButton>
-          <IconButton
-            sx={{
-              color: 'white',
-              fontSize: '1.4rem',
-              p: '0.8rem',
-              borderRadius: 50,
-              '&:hover': { color: '#ff4500', background: 'rgba(255, 69, 0, 0.1)', transform: 'scale(1.1)' }
-            }}
-          >
-            <FaNewspaper />
-          </IconButton>
-          <IconButton
-            sx={{
-              color: 'white',
-              fontSize: '1.4rem',
-              p: '0.8rem',
-              borderRadius: 50,
-              '&:hover': { color: '#ff4500', background: 'rgba(255, 69, 0, 0.1)', transform: 'scale(1.1)' }
-            }}
-          >
-            <FaBox />
-          </IconButton>
-        </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5, mb: 2 }}>
-          <Link to="/" style={{ color: 'white', textDecoration: 'none', fontSize: '1.1rem', padding: '0.8rem 1.5rem', borderRadius: 25, transition: 'all 0.3s ease' }}>
-            Trang chủ
-          </Link>
-          <Link to="/about" style={{ color: 'white', textDecoration: 'none', fontSize: '1.1rem', padding: '0.8rem 1.5rem', borderRadius: 25, transition: 'all 0.3s ease' }}>
-            Giới thiệu
-          </Link>
-          <Link to="/contact" style={{ color: 'white', textDecoration: 'none', fontSize: '1.1rem', padding: '0.8rem 1.5rem', borderRadius: 25, transition: 'all 0.3s ease' }}>
-            Liên hệ
-          </Link>
-        </Box>
-        <Typography sx={{ fontSize: '0.9rem', opacity: 0.7 }}>©2025 LuanAcademy | All Rights Reserved</Typography>
-      </Box>
     </Box>
   );
 };

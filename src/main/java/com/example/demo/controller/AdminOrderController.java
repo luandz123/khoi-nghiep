@@ -22,8 +22,9 @@ public class AdminOrderController {
     @GetMapping
     public ResponseEntity<List<OrderResponse>> getAllOrders(
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) String search) {
-        return ResponseEntity.ok(orderService.getAllOrders(status, search));
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false, defaultValue = "createdAt,desc") String sort) {
+        return ResponseEntity.ok(orderService.getAllOrders(status, search, sort));
     }
 
     @GetMapping("/{id}")

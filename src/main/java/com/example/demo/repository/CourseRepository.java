@@ -1,19 +1,20 @@
 package com.example.demo.repository;
 
-import com.example.demo.entity.Category;
 import com.example.demo.entity.Course;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 public interface CourseRepository extends JpaRepository<Course, Long> {
-    long countByCreatedAtBefore(LocalDateTime date);
-    List<Course> findByCategory(Category category);
     
-    
-    // Hoặc nếu bạn lưu categoryId trực tiếp trong entity Course (là Long), dùng:
     List<Course> findByCategoryId(Long categoryId);
     
-    // Nếu chưa có, bạn có thể sử dụng cách tìm theo nested property:
-    List<Course> findByCategory_Id(Long categoryId);
+    long countByCreatedAtBefore(LocalDateTime date);
+    
+    @Query("SELECT c.category.name as categoryName, COUNT(c) as courseCount FROM Course c GROUP BY c.category.name")
+    Map<String, Long> countCoursesByCategory();
 }

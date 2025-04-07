@@ -3,6 +3,7 @@ package com.example.demo.dto;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 import java.math.BigDecimal;
+import org.springframework.web.multipart.MultipartFile;
 
 @Data
 public class ProductRequest {
@@ -21,5 +22,10 @@ public class ProductRequest {
     private String category;
 
     private String description;
+    
+    // URL được lưu trong DB để hiển thị ảnh sản phẩm
     private String imageUrl;
+
+    // File ảnh được upload từ form (không lưu vào DB)
+    private MultipartFile imageFile;
 }

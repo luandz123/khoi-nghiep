@@ -1,394 +1,116 @@
+/* Modern Homepage Styling */
+
 /* General Styles */
 body {
   font-family: 'Poppins', sans-serif;
   margin: 0;
   padding: 0;
-  background-color: #ffffff;
+  background-color: #f8fafc; /* Light background */
   color: #333;
-  border: none;
+  overflow-x: hidden;
 }
 
 .homepage {
-  text-align: center;
-  padding-top: 70px; /* Add top padding for fixed navbar */
-  padding-bottom: 30px; /* Add bottom padding for footer */
+  padding-bottom: 60px;
+  overflow-x: hidden;
 }
 
-/* Banner Section */
-.banner {
+section {
+  padding: 80px 0;
   position: relative;
-  width: 100%;
-  height: 450px;
-  background: linear-gradient(120deg, #ff6f61, #a300cc);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  overflow: hidden;
-  border-radius: 0 ;
-  box-shadow: none;
-  
 }
 
-.banner-overlay {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.4);
-}
-
-.banner-content {
-  position: relative;
-  z-index: 2;
-  text-align: center;
-  max-width: 800px;
-  padding: 0 20px;
-}
-
-.banner-content h1 {
-  font-size: 2.8rem;
-  margin-bottom: 15px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.banner-content p {
-  font-size: 1.3rem;
-  margin-bottom: 25px;
-  line-height: 1.6;
-}
-
-.banner-tabs {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: center;
-  padding: 0;
-  background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 15px 15px 0 0;
-}
-
-.banner-tab {
-  padding: 12px 25px;
-  color: white;
-  text-decoration: none;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  border-bottom: 3px solid transparent;
-  opacity: 0.8;
-}
-
-.banner-tab:hover {
-  opacity: 1;
-  border-bottom: 3px solid #ffcc00;
-}
-
-.banner-tab.active {
-  opacity: 1;
-  border-bottom: 3px solid #ffcc00;
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.cta-button {
-  background: #ffcc00;
-  color: #333;
-  padding: 14px 28px;
-  border: none;
-  border-radius: 30px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: 0.3s;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
-}
-
-.cta-button:hover {
-  background: #ff9900;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-}
-
-.banner-image {
-  margin-top: 20px;
-  max-width: 100%;
-  border-radius: 15px;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-}
-
-/* Featured Courses */
-.featured-courses {
-  padding: 60px 20px;
-  background: white;
-  border-radius: 15px;
-  margin: 30px 20px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-}
-
-.featured-courses h2 {
-  font-size: 2rem;
-  margin-bottom: 30px;
+.section-title {
+  font-weight: 700 !important;
+  margin-bottom: 16px !important;
   position: relative;
   display: inline-block;
-  padding-bottom: 10px;
+  font-size: 2.2rem;
 }
 
-.featured-courses h2::after {
+.section-title::after {
   content: '';
   position: absolute;
-  width: 60%;
-  height: 3px;
-  background: linear-gradient(90deg, #ff6f61, #a300cc);
-  bottom: 0;
-  left: 20%;
+  width: 60px;
+  height: 4px;
+  background: linear-gradient(90deg, #6366f1, #a855f7);
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
   border-radius: 2px;
 }
 
-.courses-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 25px;
-  justify-content: center;
-  padding: 20px;
+.section-subtitle {
+  color: #64748b;
+  margin-bottom: 48px !important;
+  max-width: 600px;
+  margin: 0 auto !important;
+  font-size: 1.1rem;
+  line-height: 1.6;
 }
 
-.course-card {
-  background: white;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-  border-radius: 15px;
-  text-decoration: none;
-  color: #333;
-  transition: all 0.3s;
+.text-gradient {
+  background: linear-gradient(90deg, #6366f1, #a855f7);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Hero Section */
+.hero-section {
+  min-height: 600px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: white;
+  position: relative;
+  padding: 120px 0 160px;
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-.course-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
-}
-
-.course-header {
-  padding: 18px;
-  color: white;
-  border-top-left-radius: 15px;
-  border-top-right-radius: 15px;
-  text-align: left;
-}
-
-.course-title {
-  font-size: 1.4rem;
-  margin: 5px 0;
-}
-
-.course-subtitle {
-  opacity: 0.9;
-  font-size: 0.95rem;
-}
-
-.course-body {
-  padding: 18px;
-  text-align: left;
-}
-
-.course-image {
-  width: 100%;
-  border-radius: 10px;
-  margin-bottom: 15px;
-  transition: transform 0.3s ease;
-}
-
-.course-card:hover .course-image {
-  transform: scale(1.03);
-}
-
-.course-info p {
-  font-size: 0.95rem;
-  margin: 8px 0;
-  display: flex;
-  align-items: center;
-}
-
-.course-star {
-  margin-right: 5px;
-  font-size: 1.2rem;
-}
-
-/* Footer - Fixed styling for sidebar compatibility */
-.footer {
-  position: relative;
-  background: #2c3e50;
-  color: white;
-  padding: 50px 20px 30px;
-  text-align: center;
-  border-radius: 15px 15px 0 0;
-  margin-top: 40px;
-  width: 100%;
-  box-sizing: border-box;
-  z-index: 10;
-  margin-left: 0;
-  clear: both;
-}
-
-/* Removed waves elements */
-.waves {
-  display: none;
-}
-
-.menu {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  justify-content: center;
-  margin: 20px 0;
-  flex-wrap: wrap;
-}
-
-.menu__item {
-  margin: 5px 15px;
-}
-
-.menu__link {
-  color: #ecf0f1;
-  text-decoration: none;
-  transition: color 0.3s;
-  font-size: 1rem;
-  position: relative;
-  padding: 5px 0;
-}
-
-.menu__link:hover {
-  color: #ff6b6b;
-}
-
-.menu__link::after {
-  content: '';
+.hero-overlay {
   position: absolute;
-  width: 0;
-  height: 2px;
-  bottom: 0;
+  top: 0;
   left: 0;
-  background-color: #ff6b6b;
-  transition: width 0.3s;
+  right: 0;
+  bottom: 0;
+  opacity: 0.6;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath opacity='.5' d='M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
 
-.menu__link:hover::after {
-  width: 100%;
-}
-
-.social-icon {
+.hero-content {
+  position: relative;
+  z-index: 1;
   display: flex;
-  justify-content: center;
-  margin: 25px 0;
-  padding: 0;
-  list-style: none;
-}
-
-.social-icon__item {
-  margin: 0 12px;
-}
-
-.social-icon__link {
-  color: white;
-  font-size: 1.5rem;
-  transition: all 0.3s;
-  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.social-icon__link:hover {
-  color: #ff6b6b;
-  transform: translateY(-3px);
-  background-color: rgba(255, 255, 255, 0.15);
-}
-
-/* Phone tooltip for contact */
-.contact-tooltip {
-  position: relative;
-  display: inline-block;
-  cursor: pointer;
-  font-weight: 500;
-  color: #ecf0f1;
-}
-
-.contact-tooltip .tooltiptext {
-  visibility: hidden;
-  width: 160px;
-  background-color: #34495e;
-  color: #fff;
   text-align: center;
-  border-radius: 6px;
-  padding: 8px;
-  position: absolute;
-  z-index: 1;
-  bottom: 125%;
-  left: 50%;
-  margin-left: -80px;
-  opacity: 0;
-  transition: opacity 0.3s;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
-.contact-tooltip .tooltiptext::after {
-  content: "";
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  margin-left: -5px;
-  border-width: 5px;
-  border-style: solid;
-  border-color: #34495e transparent transparent transparent;
+.hero-title {
+  font-size: 3.5rem !important;
+  font-weight: 800 !important;
+  margin-bottom: 24px !important;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  line-height: 1.2;
 }
 
-.contact-tooltip:hover .tooltiptext {
-  visibility: visible;
-  opacity: 1;
+.hero-subtitle {
+  font-size: 1.25rem !important;
+  max-width: 700px;
+  margin: 0 auto 40px !important;
+  opacity: 0.9;
+  line-height: 1.6;
 }
 
-.copyright {
-  text-align: center;
-  padding-top: 20px;
-  margin-top: 30px;
-  border-top: 1px solid #34495e;
-  font-size: 13px;
-  color: #bdc3c7;
-}
-
-p {
-  font-size: 0.95rem;
-  opacity: 0.8;
-  margin-top: 30px;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .banner-content h1 {
-    font-size: 2rem;
-  }
-  
-  .banner-content p {
-    font-size: 1.1rem;
-  }
-  
-  .banner-tabs {
-    overflow-x: auto;
-    justify-content: flex-start;
-    padding: 0 10px;
-  }
-  
-  .banner-tab {
-    padding: 10px 15px;
-    white-space: nowrap;
-  }
-  
-  .courses-grid {
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  }
+.hero-button {
+  padding: 12px 32px !important;
+  font-size: 1.1rem !important;
+  font-weight: 600 !important;
+  border-radius: 50px !important;
+  text-transform: none !important;
+  background: linear-gradient(90deg, #6366f1, #a855f7) !important;
+  box-shadow: 0 10px 25px rgba(99, 102/* filepath: c:\Users\lenovo\OneDrive\Desktop\demo\frontend\src\pages\HomePage.css */
+, 241, 0.1) !important;
+  color: white !important;
+  transition: all 0.3s !important;
 }
