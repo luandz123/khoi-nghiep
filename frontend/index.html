@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Testing</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .result { background: #f5f5f5; padding: 10px; border-radius: 5px; margin: 10px 0; white-space: pre-wrap; }
+        button { padding: 8px 15px; margin: 5px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        input, select { padding: 8px; margin: 5px; width: 200px; }
+        .test-group { margin-bottom: 30px; border: 1px solid #ddd; padding: 15px; border-radius: 8px; }
+        h2 { margin-top: 0; }
+    </style>
+</head>
+<body>
+    <h1>Test API Hệ thống Quản lý Khóa học</h1>
+    
+    <div class="test-group">
+        <h2>Authentication</h2>
+        <div>
+            <input type="text" id="username" placeholder="Username">
+            <input type="password" id="password" placeholder="Password">
+            <button onclick="login()">Login</button>
+        </div>
+        <div class="result" id="auth-result"></div>
+    </div>
+
+    <div class="test-group">
+        <h2>Test Khóa học</h2>
+        <button onclick="getCourses()">Lấy danh sách khóa học</button>
+        <input type="number" id="courseId" placeholder="Course ID">
+        <button onclick="getCourseById()">Lấy chi tiết khóa học</button>
+        <button onclick="getFeaturedCourses()">Lấy khóa học nổi bật</button>
+        <button onclick="getMyCourses()">Khóa học của tôi</button>
+        <div class="result" id="courses-result"></div>
+    </div>
+
+    <div class="test-group">
+        <h2>Test Chương</h2>
+        <input type="number" id="courseIdForChapters" placeholder="Course ID">
+        <button onclick="getCourseChapters()">Lấy chương của khóa học</button>
+        <div class="result" id="chapters-result"></div>
+    </div>
+
+    <div class="test-group">
+        <h2>Test Tiến độ</h2>
+        <input type="number" id="courseIdForProgress" placeholder="Course ID">
+        <button onclick="getCourseProgress()">Lấy tiến độ khóa học</button>
+        <button onclick="resetCourseProgress()">Đặt lại tiến độ</button>
+        <div class="result" id="progress-result"></div>
+    </div>
+
+    <script>
+        let token = localStorage.getItem('token') || '';
+        
+        function showResult(elementId, data) {
+            document.getElementById(elementId).textContent = typeof data === 'object' 
+                ? JSON.stringify(data, null, 2) 
+                : data;
+        }
+
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('http://localhost:8080/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                if (data.token) {
+                    token = data.token;
+                    localStorage.setItem('token', token);
+                    showResult('auth-result', 'Login successful! Token saved.');
+                } else {
+                    showResult('auth-result', 'Login failed: ' + JSON.stringify(data));
+                }
+            } catch (error) {
+                showResult('auth-result', 'Error: ' + error.message);
+            }
+        }
+
+        async function getCourses() {
+            try {
+                const response = await fetch('http://localhost:8080/api/courses');
+                const data = await response.json();
+                showResult('courses-result', data);
+            } catch (error) {
+                showResult('courses-result', 'Error: ' + error.message);
+            }
+        }
+
+        async function getCourseById() {
+            const courseId = document.getElementById('courseId').value;
+            try {
+                const response = await fetch(`http://localhost:8080/api/courses/${courseId}`);
+                const data = await response.json();
+                showResult('courses-result', data);
+            } catch (error) {
+                showResult('courses-result', 'Error: ' + error.message);
+            }
+        }
+
+        async function getFeaturedCourses() {
+            try {
+                const response = await fetch('http://localhost:8080/api/courses/featured');
+                const data = await response.json();
+                showResult('courses-result', data);
+            } catch (error) {
+                showResult('courses-result', 'Error: ' + error.message);
+            }
+        }
+
+        async function getMyCourses() {
+            if (!token) {
+                showResult('courses-result', 'Error: Not logged in');
+                return;
+            }
+            
+            try {
+                const response = await fetch('http://localhost:8080/api/courses/my-courses', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                showResult('courses-result', data);
+            } catch (error) {
+                showResult('courses-result', 'Error: ' + error.message);
+            }
+        }
+
+        async function getCourseChapters() {
+            const courseId = document.getElementById('courseIdForChapters').value;
+            try {
+                const response = await fetch(`http://localhost:8080/api/courses/${courseId}/chapters`, {
+                    headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+                });
+                const data = await response.json();
+                showResult('chapters-result', data);
+            } catch (error) {
+                showResult('chapters-result', 'Error: ' + error.message);
+            }
+        }
+
+        async function getCourseProgress() {
+            if (!token) {
+                showResult('progress-result', 'Error: Not logged in');
+                return;
+            }
+            
+            const courseId = document.getElementById('courseIdForProgress').value;
+            try {
+                const response = await fetch(`http://localhost:8080/api/courses/${courseId}/progress`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                showResult('progress-result', data);
+            } catch (error) {
+                showResult('progress-result', 'Error: ' + error.message);
+            }
+        }
+
+        async function resetCourseProgress() {
+            if (!token) {
+                showResult('progress-result', 'Error: Not logged in');
+                return;
+            }
+            
+            const courseId = document.getElementById('courseIdForProgress').value;
+            try {
+                const response = await fetch(`http://localhost:8080/api/courses/${courseId}/reset-progress`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                showResult('progress-result', data);
+            } catch (error) {
+                showResult('progress-result', 'Error: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -10,10 +10,17 @@ import org.springframework.data.repository.query.Param;
 public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("SELECT p FROM Product p WHERE " +
            "(:category IS NULL OR p.category = :category) AND " +
-           "(:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')))")
+           "(:type IS NULL OR p.type = :type) AND " +
+           "(:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(p.description) LIKE LOWER(CONCAT('%', :search, '%')))")
     Page<Product> findByFilters(
         @Param("category") String category,
+        @Param("type") String type,
         @Param("search") String search,
         Pageable pageable
     );
+    
+    // Additional method to find featured products
+    @Query(value = "SELECT p FROM Product p ORDER BY p.createdAt DESC")
+    Page<Product> findFeaturedProducts(Pageable pageable);
 }

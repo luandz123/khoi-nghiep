@@ -29,11 +29,17 @@ public class AdminProductService {
     // Folder where image files are stored
     private final String IMAGE_FOLDER = "C:\\Users\\lenovo\\OneDrive\\Desktop\\demo\\frontend\\public\\img\\imgproducts";
 
-    public Page<ProductResponse> getAllProducts(String category, String search, Pageable pageable) {
+    public Page<ProductResponse> getAllProducts(String category, String type, String search, Pageable pageable) {
         return productRepository.findByFilters(
                 category != null && category.equals("all") ? null : category,
+                type != null && type.equals("all") ? null : type,
                 search != null && search.trim().isEmpty() ? null : search,
                 pageable)
+            .map(product -> modelMapper.map(product, ProductResponse.class));
+    }
+    
+    public Page<ProductResponse> getFeaturedProducts(int size) {
+        return productRepository.findFeaturedProducts(Pageable.ofSize(size))
             .map(product -> modelMapper.map(product, ProductResponse.class));
     }
 
@@ -46,6 +52,21 @@ public class AdminProductService {
     @Transactional
     public ProductResponse createProduct(ProductRequest request, MultipartFile imageFile) {
         Product product = modelMapper.map(request, Product.class);
+        
+        // Calculate discount if not provided
+        if (product.getDiscount() == null && product.getOriginalPrice() != null && product.getPrice() != null) {
+            if (product.getOriginalPrice().compareTo(product.getPrice()) > 0) {
+                // Calculate discount percentage: (original - current) / original * 100
+                double discount = product.getOriginalPrice().subtract(product.getPrice())
+                    .multiply(new java.math.BigDecimal(100))
+                    .divide(product.getOriginalPrice(), 0, java.math.RoundingMode.HALF_UP)
+                    .intValue();
+                product.setDiscount((int) discount);
+            } else {
+                product.setDiscount(0);
+            }
+        }
+        
         if (imageFile != null && !imageFile.isEmpty()) {
             String imageUrl = saveImageFile(imageFile);
             product.setImageUrl(imageUrl);
@@ -60,6 +81,18 @@ public class AdminProductService {
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy sản phẩm"));
 
         modelMapper.map(request, product);
+        
+        // Recalculate discount on update
+        if (product.getOriginalPrice().compareTo(product.getPrice()) > 0) {
+            double discount = product.getOriginalPrice().subtract(product.getPrice())
+                .multiply(new java.math.BigDecimal(100))
+                .divide(product.getOriginalPrice(), 0, java.math.RoundingMode.HALF_UP)
+                .intValue();
+            product.setDiscount((int) discount);
+        } else {
+            product.setDiscount(0);
+        }
+        
         if (imageFile != null && !imageFile.isEmpty()) {
             String imageUrl = saveImageFile(imageFile);
             product.setImageUrl(imageUrl);
@@ -76,21 +109,21 @@ public class AdminProductService {
         productRepository.deleteById(id);
     }
     
-  private String saveImageFile(MultipartFile file) {
-    try {
-        File dir = new File(IMAGE_FOLDER);
-        if (!dir.exists()) {
-            dir.mkdirs();
+    private String saveImageFile(MultipartFile file) {
+        try {
+            File dir = new File(IMAGE_FOLDER);
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+            String originalFilename = file.getOriginalFilename();
+            // Create unique filename with timestamp
+            String uniqueFilename = System.currentTimeMillis() + "_" + originalFilename;
+            Path destination = Path.of(IMAGE_FOLDER, uniqueFilename);
+            Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
+            // Return relative URL for frontend
+            return "/img/imgproducts/" + uniqueFilename;
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error saving image file", e);
         }
-        String originalFilename = file.getOriginalFilename();
-        // Tạo tên file duy nhất: nối thêm thời gian hiện tại.
-        String uniqueFilename = System.currentTimeMillis() + "_" + originalFilename;
-        Path destination = Path.of(IMAGE_FOLDER, uniqueFilename);
-        Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
-        // Trả về URL tương đối để frontend truy cập
-        return "/img/imgproducts/" + uniqueFilename;
-    } catch (IOException e) {
-        throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error saving image file", e);
     }
-}
 }

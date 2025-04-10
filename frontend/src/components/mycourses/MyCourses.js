@@ -1,106 +1,241 @@
-import React, { useEffect, useState } from 'react';
+// src/components/mycourses/MyCourses.js
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Container, Typography, Grid, Card, CardMedia, CardContent, CardActions, Button } from '@mui/material';
+import {
+  Container, Typography, Grid, Card, CardMedia, CardContent, CardActions,
+  Button, Box, CircularProgress, LinearProgress, Chip
+} from '@mui/material';
+import {
+  PlayCircleOutline as PlayIcon,
+  Timer as TimerIcon,
+  School as SchoolIcon,
+  CheckCircle as CheckCircleIcon
+} from '@mui/icons-material';
+import { motion } from 'framer-motion';
+import axiosInstance from '../../utils/axiosConfig';
 import './MyCourses.css';
-
-const getYoutubeId = (url) => {
-  try {
-    const urlObj = new URL(url);
-    if (urlObj.hostname === 'youtu.be') {
-      return urlObj.pathname.slice(1);
-    } else if (urlObj.hostname.includes('youtube.com')) {
-      return urlObj.searchParams.get('v');
-    }
-    return null;
-  } catch (error) {
-    return null;
-  }
-};
 
 const MyCourses = () => {
   const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Lấy danh sách khóa học của user từ backend, gửi kèm token nếu có
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    fetch('http://localhost:8080/api/courses/my-courses', {
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-    })
-      .then((res) => res.json())
-      .then((data) => setCourses(data))
-      .catch((error) => console.error('Error fetching my courses:', error));
-  }, []);
+    const fetchMyCourses = async () => {
+      try {
+        const response = await axiosInstance.get('/courses/my-courses');
+        setCourses(response.data || []);
+      } catch (error) {
+        console.error('Error fetching my courses:', error);
+        if (error.response?.status === 401) {
+          navigate('/login', { state: { from: '/my-courses' } });
+        } else {
+          setCourses([]);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMyCourses();
+  }, [navigate]);
+
+  // Function to extract YouTube thumbnail
+  const getYoutubeThumbnail = (url) => {
+    if (!url) return 'https://via.placeholder.com/640x360.png?text=No+Thumbnail';
+    
+    try {
+      const videoId = url.includes('v=') 
+        ? url.split('v=')[1].split('&')[0]
+        : url.split('/').pop();
+        
+      return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+    } catch (error) {
+      return 'https://via.placeholder.com/640x360.png?text=No+Thumbnail';
+    }
+  };
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        type: "spring",
+        stiffness: 100
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '70vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (courses.length === 0) {
+    return (
+      <Container sx={{ py: 8 }}>
+        <Box sx={{ textAlign: 'center', py: 8 }}>
+          <SchoolIcon sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} />
+          <Typography variant="h4" gutterBottom>
+            Bạn chưa đăng ký khóa học nào
+          </Typography>
+          <Typography variant="body1" color="text.secondary" paragraph>
+            Khám phá các khóa học chất lượng cao và bắt đầu hành trình học tập của bạn!
+          </Typography>
+          <Button
+            variant="contained"
+            size="large"
+            onClick={() => navigate('/courses')}
+            sx={{ mt: 2 }}
+          >
+            Khám phá khóa học
+          </Button>
+        </Box>
+      </Container>
+    );
+  }
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#f5f5f5', py: 4 }}>
-      <Container>
-        <Typography variant="h4" align="center" sx={{ mb: 4, fontWeight: 'bold', color: '#1a237e' }}>
-          Khóa Học Của Tôi
-        </Typography>
-        <Grid container spacing={3}>
-          {courses.length > 0 ? (
-            courses.map((course) => (
-              <Grid item xs={12} sm={6} md={4} key={course.id}>
-                <Card className="course-card" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                  <CardMedia
-                    component="img"
-                    height="200"
-                    image={
-                      course.videoUrl
-                        ? `https://img.youtube.com/vi/${getYoutubeId(course.videoUrl)}/maxresdefault.jpg`
-                        : course.thumbnail || 'https://via.placeholder.com/300x200'
-                    }
-                    alt={course.title}
-                    className="course-image"
-                  />
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#1a237e' }} className="course-title">
-                      {course.title}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      className="course-description"
-                      sx={{
+    <Container sx={{ py: 4 }}>
+      <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 4, fontWeight: 'bold' }}>
+        Khóa học của tôi
+      </Typography>
+      
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        <Grid container spacing={4}>
+          {courses.map((course) => (
+            <Grid item xs={12} sm={6} md={4} key={course.id}>
+              <motion.div variants={itemVariants}>
+                <Card className="my-course-card">
+                  <Box sx={{ position: 'relative' }}>
+                    <CardMedia
+                      component="img"
+                      height="160"
+                      image={course.thumbnail || getYoutubeThumbnail(course.videoUrl)}
+                      alt={course.title}
+                      className="course-thumbnail"
+                    />
+                    
+                    <Box 
+                      sx={{ 
+                        position: 'absolute', 
+                        bottom: 0, 
+                        left: 0, 
+                        right: 0, 
+                        p: 1,
+                        background: 'linear-gradient(transparent, rgba(0,0,0,0.7))'
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Chip 
+                          icon={<TimerIcon sx={{ fontSize: '0.75rem !important' }} />}
+                          label={course.duration || '10 giờ'}
+                          size="small"
+                          sx={{ 
+                            bgcolor: 'rgba(255,255,255,0.9)', 
+                            color: 'text.primary',
+                            fontSize: '0.7rem'
+                          }}
+                        />
+                        
+                        <Chip 
+                          icon={(course.progress || 0) >= 100 
+                            ? <CheckCircleIcon sx={{ fontSize: '0.75rem !important' }} />
+                            : null
+                          }
+                          label={`${course.progress || 0}% hoàn thành`}
+                          size="small"
+                          color={(course.progress || 0) >= 100 ? 'success' : 'default'}
+                          sx={{ 
+                            bgcolor: (course.progress || 0) >= 100 
+                              ? 'success.light' 
+                              : 'rgba(255,255,255,0.9)', 
+                            color: (course.progress || 0) >= 100 ? 'white' : 'text.primary',
+                            fontSize: '0.7rem'
+                          }}
+                        />
+                      </Box>
+                    </Box>
+                  </Box>
+                  
+                  <CardContent sx={{ p: 2 }}>
+                    <Typography 
+                      variant="subtitle1" 
+                      component="h2" 
+                      sx={{ 
+                        fontWeight: 'bold',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         display: '-webkit-box',
-                        WebkitLineClamp: 3,
+                        WebkitLineClamp: 2,
                         WebkitBoxOrient: 'vertical',
+                        minHeight: '48px'
                       }}
                     >
-                      {course.description}
+                      {course.title}
                     </Typography>
+                    
+                    <Box sx={{ mt: 2, mb: 1 }}>
+                      <LinearProgress 
+                        variant="determinate" 
+                        value={course.progress || 0} 
+                        sx={{ 
+                          height: 8, 
+                          borderRadius: 4,
+                          '& .MuiLinearProgress-bar': {
+                            backgroundColor: (course.progress || 0) >= 100 ? 'success.main' : 'primary.main',
+                          }
+                        }} 
+                      />
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="caption" color="text.secondary">
+                        {course.completedLessons || 0}/{course.totalLessons || 10} bài học
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {course.progress || 0}%
+                      </Typography>
+                    </Box>
                   </CardContent>
-                  <CardActions>
+                  
+                  <CardActions sx={{ p: 2, pt: 0 }}>
                     <Button
-                      fullWidth
                       variant="contained"
-                      sx={{
-                        background: 'linear-gradient(45deg, #2196F3 30%, #21CBF3 90%)',
-                        color: 'white',
-                        '&:hover': { background: 'linear-gradient(45deg, #1976D2 30%, #1AC6E9 90%)' },
-                      }}
+                      fullWidth
+                      startIcon={<PlayIcon />}
                       onClick={() => navigate(`/courses/${course.id}`)}
-                      className="course-button"
+                      sx={{ textTransform: 'none' }}
                     >
-                      Xem chi tiết
+                      {(course.progress || 0) > 0 ? 'Tiếp tục học' : 'Bắt đầu học'}
                     </Button>
                   </CardActions>
                 </Card>
-              </Grid>
-            ))
-          ) : (
-            <Grid item xs={12}>
-              <Typography align="center" variant="h6" sx={{ color: '#333' }}>
-                Bạn chưa đăng ký khóa học nào.
-              </Typography>
+              </motion.div>
             </Grid>
-          )}
+          ))}
         </Grid>
-      </Container>
-    </Box>
+      </motion.div>
+    </Container>
   );
 };
 

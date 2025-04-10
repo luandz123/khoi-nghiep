@@ -1,36 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import {
     Box,
-    Paper,
+    Button,
+    Typography,
     Table,
     TableBody,
     TableCell,
     TableContainer,
     TableHead,
     TableRow,
-    TablePagination,
-    TextField,
-    Button,
+    Paper,
     IconButton,
-    Typography,
+    TextField,
     Dialog,
     DialogTitle,
     DialogContent,
     DialogActions,
+    Grid,
     FormControl,
     InputLabel,
     Select,
     MenuItem,
-    Alert,
+    TablePagination,
     Tooltip,
-    CircularProgress,
-    Grid
+    Alert,
+    InputAdornment,
+    CircularProgress
 } from '@mui/material';
 import {
-    Add as AddIcon,
     Edit as EditIcon,
     Delete as DeleteIcon,
-    Search as SearchIcon
+    Search as SearchIcon,
+    Add as AddIcon
 } from '@mui/icons-material';
 import axiosInstance from '../../utils/axiosConfig';
 
@@ -53,21 +54,48 @@ const AdminProductList = () => {
     const [productFormData, setProductFormData] = useState({
         name: '',
         price: '',
+        originalPrice: '',
+        discount: '',
+        type: 'tech',
         stock: '',
         category: '',
         description: '',
         image: null
     });
 
-    // List of categories; adjust as needed
-    const [categories] = useState(['Sách', 'Laptop', 'Phím cơ', 'Chuột gaming', 'Tai nghe']);
+    // Product types from our backend
+    const productTypes = [
+        { id: 'tech', name: 'Sản phẩm công nghệ' },
+        { id: 'course', name: 'Khóa học' },
+        { id: 'book', name: 'Sách IT' },
+        { id: 'source', name: 'Source code' }
+    ];
+
+    // List of categories; this should ideally come from the backend
+    const [categories, setCategories] = useState([
+        'Laptop', 'Phụ kiện', 'Sách IT', 'Khóa học', 'Source code', 'Màn hình'
+    ]);
+
+    useEffect(() => {
+        fetchCategories();
+    }, []);
+
+    const fetchCategories = async () => {
+        try {
+            const response = await axiosInstance.get('/categories');
+            if (response.data && Array.isArray(response.data)) {
+                setCategories(response.data.map(cat => cat.name));
+            }
+        } catch (err) {
+            console.error('Error fetching categories:', err);
+        }
+    };
 
     const fetchProducts = async () => {
         setLoading(true);
         try {
-            // Build query parameters; omit category if "all" selected.
             const params = {
-                page,
+                page: page,
                 size: rowsPerPage,
                 search: search.trim()
             };
@@ -75,10 +103,13 @@ const AdminProductList = () => {
                 params.category = category;
             }
             const response = await axiosInstance.get('/admin/products', { params });
+            
             // The backend returns a page object with "content" and "totalElements"
-            setProducts(response.data.content || []);
-            setTotalElements(response.data.totalElements || 0);
-            setError('');
+            if (response.data) {
+                setProducts(response.data.content || []);
+                setTotalElements(response.data.totalElements || 0);
+                setError('');
+            }
         } catch (err) {
             console.error('Error fetching products:', err);
             const errMsg = err.response?.data?.message || err.message || 'Không thể tải danh sách sản phẩm';
@@ -108,6 +139,9 @@ const AdminProductList = () => {
         setProductFormData({
             name: '',
             price: '',
+            originalPrice: '',
+            discount: '',
+            type: 'tech',
             stock: '',
             category: '',
             description: '',
@@ -120,11 +154,14 @@ const AdminProductList = () => {
         setIsEdit(true);
         setCurrentProductId(product.id);
         setProductFormData({
-            name: product.name,
-            price: product.price,
-            stock: product.stock,
-            category: product.category,
-            description: product.description,
+            name: product.name || '',
+            price: product.price || '',
+            originalPrice: product.originalPrice || '',
+            discount: product.discount || 0,
+            type: product.type || 'tech',
+            stock: product.stock || 0,
+            category: product.category || '',
+            description: product.description || '',
             image: null
         });
         setOpenFormDialog(true);
@@ -132,35 +169,55 @@ const AdminProductList = () => {
 
     const handleFormChange = (e) => {
         const { name, value } = e.target;
-        setProductFormData((prev) => ({
-            ...prev,
+        setProductFormData({
+            ...productFormData,
             [name]: value
-        }));
+        });
     };
 
     const handleFileChange = (e) => {
-        setProductFormData((prev) => ({
-            ...prev,
-            image: e.target.files[0]
-        }));
+        if (e.target.files && e.target.files[0]) {
+            setProductFormData({
+                ...productFormData,
+                image: e.target.files[0]
+            });
+        }
     };
 
-    
-        const handleFormSubmit = async (e) => {
+    const calculateDiscount = () => {
+        if (productFormData.originalPrice && productFormData.price) {
+            const originalPrice = parseFloat(productFormData.originalPrice);
+            const currentPrice = parseFloat(productFormData.price);
+            
+            if (originalPrice > currentPrice) {
+                const discountPercent = Math.round(((originalPrice - currentPrice) / originalPrice) * 100);
+                return discountPercent;
+            }
+        }
+        return 0;
+    };
+
+    const handleFormSubmit = async (e) => {
         e.preventDefault();
         try {
             const formData = new FormData();
-            // Tách dữ liệu sản phẩm không bao gồm file ảnh
-            const productData = {
+            
+            // Create the product request object
+            const productRequest = {
                 name: productFormData.name,
-                price: productFormData.price,
-                stock: productFormData.stock,
+                price: parseFloat(productFormData.price),
+                originalPrice: parseFloat(productFormData.originalPrice) || parseFloat(productFormData.price),
+                discount: parseInt(productFormData.discount) || calculateDiscount(),
+                type: productFormData.type,
+                stock: parseInt(productFormData.stock),
                 category: productFormData.category,
                 description: productFormData.description
             };
-            // Gắn phần dữ liệu JSON của sản phẩm vào key "product"
-            formData.append('product', new Blob([JSON.stringify(productData)], { type: 'application/json' }));
-            // Nếu có file, thêm vào key "image"
+            
+            // Add the product JSON as a blob to the FormData
+            formData.append('product', new Blob([JSON.stringify(productRequest)], { type: 'application/json' }));
+            
+            // Add the image if present
             if (productFormData.image) {
                 formData.append('image', productFormData.image);
             }
@@ -174,6 +231,7 @@ const AdminProductList = () => {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
             }
+            
             fetchProducts();
             setOpenFormDialog(false);
         } catch (err) {
@@ -193,7 +251,7 @@ const AdminProductList = () => {
         }
     };
 
-    if (loading) {
+    if (loading && products.length === 0) {
         return (
             <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
                 <CircularProgress />
@@ -220,7 +278,7 @@ const AdminProductList = () => {
                     size="small"
                     value={search}
                     onChange={handleSearch}
-                    InputProps={{ startAdornment: <SearchIcon sx={{ color: 'action.active', mr: 1 }} /> }}
+                    InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: 'action.active', mr: 1 }} /></InputAdornment> }}
                     sx={{ flexGrow: 1 }}
                 />
 
@@ -341,21 +399,57 @@ const AdminProductList = () => {
                                     required
                                 />
                             </Grid>
-                            <Grid item xs={6}>
+                            
+                            <Grid item xs={12} sm={6}>
                                 <TextField
                                     fullWidth
-                                    label="Giá"
+                                    label="Giá hiện tại"
                                     name="price"
                                     type="number"
                                     value={productFormData.price}
                                     onChange={handleFormChange}
+                                    InputProps={{
+                                        endAdornment: <InputAdornment position="end">VNĐ</InputAdornment>,
+                                    }}
                                     required
                                 />
                             </Grid>
-                            <Grid item xs={6}>
+                            
+                            <Grid item xs={12} sm={6}>
                                 <TextField
                                     fullWidth
-                                    label="Tồn kho"
+                                    label="Giá gốc"
+                                    name="originalPrice"
+                                    type="number"
+                                    value={productFormData.originalPrice}
+                                    onChange={handleFormChange}
+                                    InputProps={{
+                                        endAdornment: <InputAdornment position="end">VNĐ</InputAdornment>,
+                                    }}
+                                    helperText="Nếu để trống, sẽ dùng giá hiện tại"
+                                />
+                            </Grid>
+                            
+                            <Grid item xs={12} sm={6}>
+                                <FormControl fullWidth required>
+                                    <InputLabel>Loại sản phẩm</InputLabel>
+                                    <Select
+                                        name="type"
+                                        value={productFormData.type}
+                                        onChange={handleFormChange}
+                                        label="Loại sản phẩm"
+                                    >
+                                        {productTypes.map(type => (
+                                            <MenuItem key={type.id} value={type.id}>{type.name}</MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Grid>
+                            
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Số lượng trong kho"
                                     name="stock"
                                     type="number"
                                     value={productFormData.stock}
@@ -363,8 +457,9 @@ const AdminProductList = () => {
                                     required
                                 />
                             </Grid>
-                            <Grid item xs={6}>
-                                <FormControl fullWidth required size="small">
+                            
+                            <Grid item xs={12}>
+                                <FormControl fullWidth required>
                                     <InputLabel>Danh mục</InputLabel>
                                     <Select
                                         name="category"
@@ -372,31 +467,33 @@ const AdminProductList = () => {
                                         onChange={handleFormChange}
                                         label="Danh mục"
                                     >
-                                        {categories.map((cat) => (
-                                            <MenuItem key={cat} value={cat}>
-                                                {cat}
-                                            </MenuItem>
+                                        {categories.map(cat => (
+                                            <MenuItem key={cat} value={cat}>{cat}</MenuItem>
                                         ))}
                                     </Select>
                                 </FormControl>
                             </Grid>
-                            <Grid item xs={6}>
+                            
+                            <Grid item xs={12}>
                                 <TextField
                                     fullWidth
-                                    label="Mô tả"
+                                    label="Mô tả sản phẩm"
                                     name="description"
                                     value={productFormData.description}
                                     onChange={handleFormChange}
                                     multiline
-                                    rows={3}
+                                    rows={4}
+                                    required
                                 />
                             </Grid>
+                            
                             <Grid item xs={12}>
                                 <Button variant="outlined" component="label">
                                     {productFormData.image ? 'Đã chọn file' : 'Chọn hình ảnh'}
                                     <input type="file" accept="image/*" hidden onChange={handleFileChange} />
                                 </Button>
                             </Grid>
+                            
                             {/* Preview image */}
                             <Grid item xs={12}>
                                 {productFormData.image && (

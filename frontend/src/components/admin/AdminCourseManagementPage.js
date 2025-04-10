@@ -12,7 +12,7 @@ const AdminCourseManagementPage = () => {
     // Lấy danh sách khóa học
     const fetchCourses = async () => {
       try {
-        const coursesResponse = await axiosInstance.get('/api/admin/courses');
+        const coursesResponse = await axiosInstance.get('/admin/courses');
         setCourses(coursesResponse.data);
       } catch (error) {
         console.error('Lỗi khi tải khóa học:', error);
@@ -49,7 +49,7 @@ const AdminCourseManagementPage = () => {
     if (!window.confirm('Bạn có chắc chắn muốn xóa khóa học này?')) return;
 
     try {
-      await axiosInstance.delete(`/api/admin/courses/${courseId}`);
+      await axiosInstance.delete(`/admin/courses/${courseId}`);
       setCourses(courses.filter(course => course.id !== courseId));
       alert('Xóa khóa học thành công');
     } catch (error) {

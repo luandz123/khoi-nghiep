@@ -1,107 +1,168 @@
 package com.example.demo.controller;
 
-import com.example.demo.dto.CourseCreateRequest;
-import com.example.demo.dto.CourseCreateResponse;
-import com.example.demo.dto.CourseDto;
-import com.example.demo.entity.Category;
+import com.example.demo.dto.CourseDTO;
+import com.example.demo.dto.CreateCourseRequest;
 import com.example.demo.entity.Course;
-import com.example.demo.repository.CategoryRepository;
-import com.example.demo.repository.CourseRepository;
-
+import com.example.demo.entity.Category;
+import com.example.demo.service.CourseService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.logging.Logger;
 
 @RestController
 @RequestMapping("/api/admin/courses")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:8080"})
+@PreAuthorize("hasAuthority('ADMIN')")
 public class AdminCourseController {
-
-    private final CourseRepository courseRepository;
+    private final CourseService courseService;
+    private static final Logger logger = Logger.getLogger(AdminCourseController.class.getName());
     
     @Autowired
-    private CategoryRepository categoryRepository;
-
-    public AdminCourseController(CourseRepository courseRepository) {
-        this.courseRepository = courseRepository;
+    public AdminCourseController(CourseService courseService) {
+        this.courseService = courseService;
     }
-
-    @PostMapping
-    public ResponseEntity<CourseCreateResponse> createCourse(@RequestBody CourseCreateRequest request) {
-        if (request.getTitle() == null || request.getTitle().isEmpty()) {
-            return ResponseEntity.badRequest().body(new CourseCreateResponse("Fail"));
-        }
-        Course course = new Course();
-        course.setTitle(request.getTitle());
-        course.setDescription(request.getDescription());
-        course.setThumbnail(request.getThumbnail());
-        
-        if (request.getCategoryId() != null) {
-            Category category = categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("Category not found"));
-            course.setCategory(category);
-        }
-        
-        course.setVideoUrl(request.getVideoUrl());
-        courseRepository.save(course);
-        return ResponseEntity.ok(new CourseCreateResponse("Success"));
+    
+    // API endpoint để test
+    @GetMapping("/test")
+    public ResponseEntity<String> testEndpoint() {
+        return ResponseEntity.ok("API works!");
     }
-
+    
     @GetMapping
-    public ResponseEntity<List<CourseDto>> getAllCourses() {
-        List<Course> courses = courseRepository.findAll();
-        List<CourseDto> courseDtos = courses.stream().map(course -> {
-            CourseDto dto = new CourseDto();
-            dto.setId(course.getId().longValue());
-            dto.setTitle(course.getTitle());
-            dto.setDescription(course.getDescription());
-            dto.setThumbnail(course.getThumbnail());
-            dto.setCategory(course.getCategory() != null ? course.getCategory().getName() : null);
-            dto.setVideoUrl(course.getVideoUrl());
-            return dto;
-        }).collect(Collectors.toList());
-        return ResponseEntity.ok(courseDtos);
+    public ResponseEntity<List<CourseDTO>> getAllCourses(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String level) {
+        logger.info("Getting all courses with filters: search=" + search + ", category=" + category + ", level=" + level);
+        return ResponseEntity.ok(courseService.getAllCourses(search, category, level));
     }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<CourseCreateResponse> updateCourse(@PathVariable Long id, @RequestBody CourseCreateRequest request) {
-        Optional<Course> courseOptional = courseRepository.findById(id);
-        if (!courseOptional.isPresent()) {
-            return ResponseEntity.notFound().build();
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<CourseDTO> getCourseById(@PathVariable Long id) {
+        logger.info("Getting course with id: " + id);
+        return ResponseEntity.ok(courseService.getCourseById(id));
+    }
+    
+    /**
+     * API endpoint để tạo khóa học mới sử dụng JSON
+     */
+    @PostMapping(consumes = {MediaType.APPLICATION_JSON_VALUE})
+    public ResponseEntity<CourseDTO> createCourse(@RequestBody CreateCourseRequest courseRequest) {
+        logger.info("Creating course using JSON: " + courseRequest.getTitle());
+        
+        Course course = new Course();
+        course.setTitle(courseRequest.getTitle());
+        course.setDescription(courseRequest.getDescription());
+        course.setVideoUrl(courseRequest.getVideoUrl());
+        course.setInstructor(courseRequest.getInstructor());
+        course.setDuration(courseRequest.getDuration());
+        course.setLevel(courseRequest.getLevel());
+        
+        // Đảm bảo thumbnail không null
+        if (courseRequest.getThumbnail() == null || courseRequest.getThumbnail().trim().isEmpty()) {
+            course.setThumbnail("https://placehold.co/600x400?text=No+Image");
+        } else {
+            course.setThumbnail(courseRequest.getThumbnail());
         }
-        Course course = courseOptional.get();
-        if (request.getTitle() != null && !request.getTitle().isEmpty()) {
-            course.setTitle(request.getTitle());
-        }
-        if (request.getDescription() != null) {
-            course.setDescription(request.getDescription());
-        }
-        if (request.getThumbnail() != null) {
-            course.setThumbnail(request.getThumbnail());
-        }
-        if (request.getCategoryId() != null) {
-            Category category = categoryRepository.findById(request.getCategoryId())
-                    .orElseThrow(() -> new RuntimeException("Category not found"));
+        
+        if (courseRequest.getCategoryId() != null) {
+            Category category = new Category();
+            category.setId(courseRequest.getCategoryId());
             course.setCategory(category);
         }
-        if (request.getVideoUrl() != null) {
-            course.setVideoUrl(request.getVideoUrl());
-        }
-        courseRepository.save(course);
-        return ResponseEntity.ok(new CourseCreateResponse("Success"));
+        
+        CourseDTO createdCourse = courseService.createCourse(course, null);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdCourse);
     }
 
+    /**
+     * API endpoint xử lý multipart request khi có file
+     */
+    @PostMapping(consumes = {MediaType.MULTIPART_FORM_DATA_VALUE})
+    public ResponseEntity<CourseDTO> createCourseMultipart(
+            @RequestParam("title") String title,
+            @RequestParam("description") String description,
+            @RequestParam(value = "videoUrl", required = false) String videoUrl,
+            @RequestParam(value = "instructor", required = false) String instructor,
+            @RequestParam(value = "duration", required = false) String duration,
+            @RequestParam(value = "level", required = false) String level,
+            @RequestParam(value = "categoryId", required = false) Long categoryId,
+            @RequestPart(value = "thumbnail", required = false) MultipartFile thumbnail) {
+        
+        logger.info("Creating course with multipart: " + title + " with categoryId: " + categoryId);
+        
+        Course course = new Course();
+        course.setTitle(title);
+        course.setDescription(description);
+        course.setVideoUrl(videoUrl);
+        course.setInstructor(instructor);
+        course.setDuration(duration);
+        course.setLevel(level);
+        
+        if (categoryId != null) {
+            Category category = new Category();
+            category.setId(categoryId);
+            course.setCategory(category);
+        }
+        
+        CourseDTO createdCourse = courseService.createCourse(course, thumbnail);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdCourse);
+    }
+    
+    /**
+     * API endpoint để cập nhật khóa học
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<CourseDTO> updateCourse(
+            @PathVariable Long id, 
+            @RequestBody CreateCourseRequest courseRequest) {
+        
+        logger.info("Updating course with id: " + id);
+        
+        Course course = new Course();
+        course.setId(id);
+        course.setTitle(courseRequest.getTitle());
+        course.setDescription(courseRequest.getDescription());
+        course.setVideoUrl(courseRequest.getVideoUrl());
+        course.setInstructor(courseRequest.getInstructor());
+        course.setDuration(courseRequest.getDuration());
+        course.setLevel(courseRequest.getLevel());
+        course.setThumbnail(courseRequest.getThumbnail());
+        
+        if (courseRequest.getCategoryId() != null) {
+            Category category = new Category();
+            category.setId(courseRequest.getCategoryId());
+            course.setCategory(category);
+        }
+        
+        CourseDTO updatedCourse = courseService.updateCourse(id, course);
+        return ResponseEntity.ok(updatedCourse);
+    }
+    
+    /**
+     * API endpoint để xóa khóa học
+     */
     @DeleteMapping("/{id}")
-    public ResponseEntity<CourseCreateResponse> deleteCourse(@PathVariable Long id) {
-        if (!courseRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        courseRepository.deleteById(id);
-        return ResponseEntity.ok(new CourseCreateResponse("Success"));
+    public ResponseEntity<Void> deleteCourse(@PathVariable Long id) {
+        logger.info("Deleting course with id: " + id);
+        courseService.deleteCourse(id);
+        return ResponseEntity.noContent().build();
     }
-
+    
+    /**
+     * API endpoint để đánh dấu khóa học là nổi bật
+     */
+    @PutMapping("/{id}/featured")
+    public ResponseEntity<CourseDTO> toggleCourseFeatured(@PathVariable Long id) {
+        logger.info("Toggling featured status for course with id: " + id);
+        CourseDTO updatedCourse = courseService.toggleFeatured(id);
+        return ResponseEntity.ok(updatedCourse);
+    }
 }

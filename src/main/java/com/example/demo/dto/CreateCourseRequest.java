@@ -7,5 +7,9 @@ public class CreateCourseRequest {
     private String title;
     private String description;
     private String videoUrl;
-    
+    private String instructor;
+    private String duration;
+    private String level;
+    private Long categoryId;
+    private String thumbnail; // Thêm trường thumbnail để nhận URL hình đại diện
 }

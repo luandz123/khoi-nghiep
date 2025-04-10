@@ -1,0 +1,26 @@
+.lesson-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.breadcrumb-link {
+  display: flex;
+  align-items: center;
+  color: #6366f1;
+  text-decoration: none;
+}
+
+.breadcrumb-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .lesson-page-header {
+    flex-direction: column;
+    gap: 20px;
+  }
+}

@@ -1,31 +1,23 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
-  FaSearch, 
-  FaUserCircle, 
-  FaUser, 
-  FaSignOutAlt, 
-  FaCog, 
-  FaHome, 
-  FaBook, 
-  FaNewspaper, 
-  FaBox, 
-  FaGraduationCap, 
-  FaShoppingCart,
-  FaHeart,
-  FaBell
-} from "react-icons/fa";
-import "./Navbar.css";
+  FaHome, FaBook, FaNewspaper, FaBox, FaSearch, FaUser, FaUserCircle,
+  FaHeart, FaShoppingCart, FaBell, FaSignOutAlt, FaCog, FaGraduationCap 
+} from 'react-icons/fa';
+import './Navbar.css';
 
 const Navbar = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [username, setUsername] = useState("User");
   const [showCoursesDropdown, setShowCoursesDropdown] = useState(false);
+  const [showProductsDropdown, setShowProductsDropdown] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [scrolled, setScrolled] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
   const userMenuRef = useRef(null);
   const coursesDropdownRef = useRef(null);
+  const productsDropdownRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -63,6 +55,21 @@ const Navbar = () => {
     }
   }, []);
 
+  // Kiểm tra số lượng giỏ hàng từ localStorage
+  useEffect(() => {
+    const getCartCount = () => {
+      const cart = JSON.parse(localStorage.getItem('cart')) || [];
+      setCartCount(cart.length);
+    };
+    
+    getCartCount();
+    window.addEventListener('storage', getCartCount);
+    
+    return () => {
+      window.removeEventListener('storage', getCartCount);
+    };
+  }, []);
+
   useEffect(() => {
     checkAuth();
     const handleClickOutside = (event) => {
@@ -72,14 +79,19 @@ const Navbar = () => {
       if (coursesDropdownRef.current && !coursesDropdownRef.current.contains(event.target)) {
         setShowCoursesDropdown(false);
       }
+      if (productsDropdownRef.current && !productsDropdownRef.current.contains(event.target)) {
+        setShowProductsDropdown(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
+    
     const handleStorageChange = (e) => {
-      if (e.key === "token") {
+      if (e.key === 'token' || e.key === 'username') {
         checkAuth();
       }
     };
     window.addEventListener("storage", handleStorageChange);
+    
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       window.removeEventListener("storage", handleStorageChange);
@@ -105,10 +117,14 @@ const Navbar = () => {
     setShowCoursesDropdown(!showCoursesDropdown);
   };
 
+  const toggleProductsDropdown = () => {
+    setShowProductsDropdown(!showProductsDropdown);
+  };
+
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchValue.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchValue)}`);
+      navigate(`/search?q=${encodeURIComponent(searchValue.trim())}`);
     }
   };
 
@@ -174,10 +190,41 @@ const Navbar = () => {
             <span>Tin Tức</span>
           </Link>
           
-          <Link to="/products" className={`nav-link ${isActive('/products') ? 'active' : ''}`}>
-            <FaBox className="nav-icon" />
-            <span>Sản Phẩm</span>
-          </Link>
+          {/* Products Dropdown */}
+          <div 
+            className="nav-dropdown"
+            ref={productsDropdownRef}
+          >
+            <div 
+              className={`nav-link ${isActive('/products') ? 'active' : ''}`}
+              onClick={toggleProductsDropdown}
+              onMouseEnter={() => setShowProductsDropdown(true)}
+            >
+              <FaBox className="nav-icon" />
+              <span>Sản Phẩm</span>
+              <span className="dropdown-arrow">▼</span>
+            </div>
+            
+            {showProductsDropdown && (
+              <div 
+                className="dropdown-menu products-dropdown"
+                onMouseLeave={() => setShowProductsDropdown(false)}
+              >
+                <Link to="/products" className="dropdown-item">
+                  <FaBox className="dropdown-icon" />
+                  Tất cả sản phẩm
+                </Link>
+                <Link to="/products/tech" className="dropdown-item">
+                  <FaBox className="dropdown-icon" />
+                  Sản phẩm công nghệ
+                </Link>
+                <Link to="/products/books" className="dropdown-item">
+                  <FaBook className="dropdown-icon" />
+                  Sách IT
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
         
         <div className="navbar-right">
@@ -201,7 +248,7 @@ const Navbar = () => {
               </Link>
               <Link to="/cart" className="icon-button cart-icon" title="Giỏ hàng">
                 <FaShoppingCart />
-                <span className="cart-count">0</span>
+                {cartCount > 0 && <span className="cart-count">{cartCount}</span>}
               </Link>
               <Link to="/notifications" className="icon-button" title="Thông báo">
                 <FaBell />
@@ -222,6 +269,11 @@ const Navbar = () => {
                     <Link to="/settings" className="dropdown-item">
                       <FaCog className="dropdown-icon" /> Cài đặt
                     </Link>
+                    {localStorage.getItem('role') === 'ADMIN' && (
+                      <Link to="/admin" className="dropdown-item admin-link">
+                        <FaCog className="dropdown-icon" /> Trang Admin
+                      </Link>
+                    )}
                     <div className="dropdown-divider"></div>
                     <button onClick={handleLogout} className="dropdown-item logout-btn">
                       <FaSignOutAlt className="dropdown-icon" /> Đăng xuất

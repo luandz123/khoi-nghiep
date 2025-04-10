@@ -1,6 +1,7 @@
 package com.example.demo.dto;
 
 import lombok.Data;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -9,6 +10,9 @@ public class ProductResponse {
     private Long id;
     private String name;
     private BigDecimal price;
+    private BigDecimal originalPrice;
+    private Integer discount;
+    private String type;
     private Integer stock;
     private String category;
     private String description;

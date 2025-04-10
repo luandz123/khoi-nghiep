@@ -19,6 +19,16 @@ public class Product {
 
     @Column(nullable = false)
     private BigDecimal price;
+    
+    // Added fields to match frontend
+    @Column(nullable = false)
+    private BigDecimal originalPrice;
+    
+    @Column
+    private Integer discount;
+    
+    @Column(nullable = false)
+    private String type;
 
     @Column(nullable = false)
     private Integer stock;

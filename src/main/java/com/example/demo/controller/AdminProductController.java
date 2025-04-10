@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/admin/products")
+@PreAuthorize("hasAuthority('ADMIN')")
 @RequiredArgsConstructor
 public class AdminProductController {
 
@@ -23,9 +24,10 @@ public class AdminProductController {
     @GetMapping
     public ResponseEntity<Page<ProductResponse>> getAllProducts(
             @RequestParam(required = false) String category,
+            @RequestParam(required = false) String type,
             @RequestParam(required = false) String search,
             Pageable pageable) {
-        return ResponseEntity.ok(productService.getAllProducts(category, search, pageable));
+        return ResponseEntity.ok(productService.getAllProducts(category, type, search, pageable));
     }
 
     @GetMapping("/{id}")
@@ -33,7 +35,6 @@ public class AdminProductController {
         return ResponseEntity.ok(productService.getProduct(id));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(consumes = {"multipart/form-data"})
     public ResponseEntity<ProductResponse> createProduct(
             @RequestPart("product") @Valid ProductRequest request,
@@ -42,7 +43,6 @@ public class AdminProductController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
     public ResponseEntity<ProductResponse> updateProduct(
             @PathVariable Long id,
@@ -51,7 +51,6 @@ public class AdminProductController {
         return ResponseEntity.ok(productService.updateProduct(id, request, image));
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
