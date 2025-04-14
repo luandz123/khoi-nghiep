@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.logging.Logger;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/courses")
@@ -117,29 +118,49 @@ public class AdminCourseController {
     }
     
     /**
-     * API endpoint để cập nhật khóa học
+     * API endpoint để cập nhật khóa học - nhận JSON trực tiếp
      */
     @PutMapping("/{id}")
     public ResponseEntity<CourseDTO> updateCourse(
             @PathVariable Long id, 
-            @RequestBody CreateCourseRequest courseRequest) {
+            @RequestBody Map<String, Object> requestBody) {
         
         logger.info("Updating course with id: " + id);
         
         Course course = new Course();
         course.setId(id);
-        course.setTitle(courseRequest.getTitle());
-        course.setDescription(courseRequest.getDescription());
-        course.setVideoUrl(courseRequest.getVideoUrl());
-        course.setInstructor(courseRequest.getInstructor());
-        course.setDuration(courseRequest.getDuration());
-        course.setLevel(courseRequest.getLevel());
-        course.setThumbnail(courseRequest.getThumbnail());
+        course.setTitle((String) requestBody.get("title"));
+        course.setDescription((String) requestBody.get("description"));
+        course.setVideoUrl((String) requestBody.get("videoUrl"));
+        course.setInstructor((String) requestBody.get("instructor"));
+        course.setDuration((String) requestBody.get("duration"));
+        course.setLevel((String) requestBody.get("level"));
+        course.setThumbnail((String) requestBody.get("thumbnail"));
         
-        if (courseRequest.getCategoryId() != null) {
-            Category category = new Category();
-            category.setId(courseRequest.getCategoryId());
-            course.setCategory(category);
+        // Xử lý categoryId có thể đến từ JSON dưới dạng số hoặc string
+        Object categoryIdObj = requestBody.get("categoryId");
+        if (categoryIdObj != null) {
+            Long categoryId;
+            if (categoryIdObj instanceof Integer) {
+                categoryId = ((Integer) categoryIdObj).longValue();
+            } else if (categoryIdObj instanceof Long) {
+                categoryId = (Long) categoryIdObj;
+            } else if (categoryIdObj instanceof String) {
+                try {
+                    categoryId = Long.parseLong((String) categoryIdObj);
+                } catch (NumberFormatException e) {
+                    logger.warning("Invalid categoryId format: " + categoryIdObj);
+                    categoryId = null;
+                }
+            } else {
+                categoryId = null;
+            }
+            
+            if (categoryId != null) {
+                Category category = new Category();
+                category.setId(categoryId);
+                course.setCategory(category);
+            }
         }
         
         CourseDTO updatedCourse = courseService.updateCourse(id, course);

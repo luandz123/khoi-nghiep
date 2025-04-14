@@ -1,24 +1,47 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Typography, Button, TextField, Box, Card, CardContent, 
-  IconButton, List, ListItem, ListItemText, ListItemSecondaryAction,
-  Paper, Divider, CircularProgress, Snackbar, Alert
-} from '@mui/material';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { 
-  Add as AddIcon, 
-  Edit as EditIcon, 
-  Delete as DeleteIcon,
-  DragHandle as DragHandleIcon,
-  MenuBook as MenuBookIcon
-} from '@mui/icons-material';
-import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
+import PropTypes from 'prop-types';
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Paper,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  IconButton,
+  Card,
+  CardContent,
+  Snackbar,
+  Alert,
+  CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Divider
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  MenuBook as MenuBookIcon,
+  DragHandle as DragHandleIcon,
+  School as SchoolIcon
+} from '@mui/icons-material';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import axiosInstance from '../../utils/axiosConfig';
 
-const AdminChapterList = ({ courseId }) => {
+const AdminChapterList = ({ initialCourseId }) => {
+  // States
+  const [courses, setCourses] = useState([]);
+  const [selectedCourseId, setSelectedCourseId] = useState(initialCourseId || '');
+  const [selectedCourseName, setSelectedCourseName] = useState('');
   const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingCourses, setLoadingCourses] = useState(true);
   const [editingChapter, setEditingChapter] = useState(null);
   const [newChapterTitle, setNewChapterTitle] = useState('');
   const [newChapterDescription, setNewChapterDescription] = useState('');
@@ -26,11 +49,47 @@ const AdminChapterList = ({ courseId }) => {
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
   const navigate = useNavigate();
 
+  // Fetch all courses when component mounts
   useEffect(() => {
-    fetchChapters();
-  }, [courseId]);
+    const fetchCourses = async () => {
+      setLoadingCourses(true);
+      try {
+        const response = await axiosInstance.get('/admin/courses');
+        setCourses(response.data);
+        
+        // If initialCourseId is provided and exists in the fetched courses, set the course name
+        if (initialCourseId) {
+          const course = response.data.find(c => c.id.toString() === initialCourseId.toString());
+          if (course) {
+            setSelectedCourseName(course.title);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching courses:', error);
+        setNotification({
+          open: true,
+          message: 'Không thể tải danh sách khóa học. Vui lòng thử lại sau.',
+          severity: 'error'
+        });
+      } finally {
+        setLoadingCourses(false);
+      }
+    };
 
-  const fetchChapters = async () => {
+    fetchCourses();
+  }, [initialCourseId]);
+
+  // Fetch chapters when selected course changes
+  useEffect(() => {
+    if (selectedCourseId) {
+      fetchChapters(selectedCourseId);
+    } else {
+      setChapters([]);
+      setLoading(false);
+    }
+  }, [selectedCourseId]);
+
+  const fetchChapters = async (courseId) => {
     setLoading(true);
     try {
       const response = await axiosInstance.get(`/chapters/course/${courseId}`);
@@ -39,45 +98,79 @@ const AdminChapterList = ({ courseId }) => {
       console.error('Error fetching chapters:', error);
       setNotification({
         open: true,
-        message: 'Không thể tải danh sách chương. Vui lòng thử lại sau.',
+        message: `Lỗi khi tải danh sách chương: ${error.response?.data?.message || error.message}`,
         severity: 'error'
       });
+      setChapters([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleCourseChange = (event) => {
+    const courseId = event.target.value;
+    setSelectedCourseId(courseId);
+    
+    // Update selected course name for display
+    if (courseId) {
+      const course = courses.find(c => c.id.toString() === courseId.toString());
+      if (course) {
+        setSelectedCourseName(course.title);
+      }
+    } else {
+      setSelectedCourseName('');
+    }
+    
+    // Reset chapter editing state
+    setEditingChapter(null);
+    setNewChapterTitle('');
+    setNewChapterDescription('');
+    setReorderMode(false);
+  };
+
   const handleCreateChapter = async () => {
+    if (!selectedCourseId) {
+      setNotification({
+        open: true,
+        message: 'Vui lòng chọn một khóa học trước khi thêm chương.',
+        severity: 'warning'
+      });
+      return;
+    }
+
     if (!newChapterTitle.trim()) {
       setNotification({
         open: true,
-        message: 'Vui lòng nhập tiêu đề chương.',
+        message: 'Tiêu đề chương không được để trống!',
         severity: 'warning'
       });
       return;
     }
 
     try {
-      const newChapter = {
+      const chapterPayload = {
         title: newChapterTitle,
         description: newChapterDescription,
-        course: { id: courseId }
+        course: { id: parseInt(selectedCourseId) }
       };
 
-      await axiosInstance.post('/chapters', newChapter);
-      setNewChapterTitle('');
-      setNewChapterDescription('');
+      const response = await axiosInstance.post('/chapters', chapterPayload);
+      setChapters([...chapters, response.data]);
+      
       setNotification({
         open: true,
         message: 'Thêm chương mới thành công!',
         severity: 'success'
       });
-      fetchChapters();
+      
+      // Reset form
+      setNewChapterTitle('');
+      setNewChapterDescription('');
     } catch (error) {
       console.error('Error creating chapter:', error);
       setNotification({
         open: true,
-        message: 'Không thể thêm chương mới. Vui lòng thử lại sau.',
+        message: `Lỗi khi tạo chương: ${error.response?.data?.message || error.message}`,
         severity: 'error'
       });
     }
@@ -87,54 +180,67 @@ const AdminChapterList = ({ courseId }) => {
     if (!editingChapter || !newChapterTitle.trim()) {
       setNotification({
         open: true,
-        message: 'Vui lòng nhập tiêu đề chương.',
+        message: 'Tiêu đề chương không được để trống!',
         severity: 'warning'
       });
       return;
     }
 
     try {
-      const updatedChapter = {
+      const chapterPayload = {
         title: newChapterTitle,
-        description: newChapterDescription
+        description: newChapterDescription,
+        order: editingChapter.order
       };
 
-      await axiosInstance.put(`/chapters/${editingChapter.id}`, updatedChapter);
-      setEditingChapter(null);
-      setNewChapterTitle('');
-      setNewChapterDescription('');
+      const response = await axiosInstance.put(`/chapters/${editingChapter.id}`, chapterPayload);
+      
+      // Update chapters list
+      setChapters(chapters.map(chapter => 
+        chapter.id === editingChapter.id ? response.data : chapter
+      ));
+      
       setNotification({
         open: true,
         message: 'Cập nhật chương thành công!',
         severity: 'success'
       });
-      fetchChapters();
+      
+      // Reset form
+      setEditingChapter(null);
+      setNewChapterTitle('');
+      setNewChapterDescription('');
     } catch (error) {
       console.error('Error updating chapter:', error);
       setNotification({
         open: true,
-        message: 'Không thể cập nhật chương. Vui lòng thử lại sau.',
+        message: `Lỗi khi cập nhật chương: ${error.response?.data?.message || error.message}`,
         severity: 'error'
       });
     }
   };
 
   const handleDeleteChapter = async (chapterId) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa chương này? Tất cả bài học trong chương cũng sẽ bị xóa.')) return;
+    if (!window.confirm('Bạn có chắc chắn muốn xóa chương này? Tất cả bài học trong chương cũng sẽ bị xóa.')) {
+      return;
+    }
 
     try {
       await axiosInstance.delete(`/chapters/${chapterId}`);
+      
+      // Remove chapter from list
+      setChapters(chapters.filter(chapter => chapter.id !== chapterId));
+      
       setNotification({
         open: true,
         message: 'Xóa chương thành công!',
         severity: 'success'
       });
-      fetchChapters();
     } catch (error) {
       console.error('Error deleting chapter:', error);
       setNotification({
         open: true,
-        message: 'Không thể xóa chương. Vui lòng thử lại sau.',
+        message: `Lỗi khi xóa chương: ${error.response?.data?.message || error.message}`,
         severity: 'error'
       });
     }
@@ -153,12 +259,16 @@ const AdminChapterList = ({ courseId }) => {
   };
 
   const handleDragEnd = async (result) => {
-    if (!result.destination) return;
+    if (!result.destination) {
+      return;
+    }
 
     const startIndex = result.source.index;
     const endIndex = result.destination.index;
 
-    if (startIndex === endIndex) return;
+    if (startIndex === endIndex) {
+      return;
+    }
 
     const reorderedChapters = Array.from(chapters);
     const [removed] = reorderedChapters.splice(startIndex, 1);
@@ -167,21 +277,28 @@ const AdminChapterList = ({ courseId }) => {
     setChapters(reorderedChapters);
 
     try {
+      // Get chapter IDs in new order
       const chapterIds = reorderedChapters.map(chapter => chapter.id);
+      
+      // Call API to update order in backend
       await axiosInstance.put('/chapters/reorder', chapterIds);
+      
       setNotification({
         open: true,
-        message: 'Thứ tự các chương đã được cập nhật!',
+        message: 'Sắp xếp lại chương thành công!',
         severity: 'success'
       });
     } catch (error) {
       console.error('Error reordering chapters:', error);
+      
+      // Revert to original order if there's an error
+      fetchChapters(selectedCourseId);
+      
       setNotification({
         open: true,
-        message: 'Không thể cập nhật thứ tự chương. Vui lòng thử lại sau.',
+        message: `Lỗi khi sắp xếp lại chương: ${error.response?.data?.message || error.message}`,
         severity: 'error'
       });
-      fetchChapters(); // Tải lại thứ tự ban đầu
     }
   };
 
@@ -197,375 +314,230 @@ const AdminChapterList = ({ courseId }) => {
     setNotification({ ...notification, open: false });
   };
 
-  if (loading && chapters.length === 0) {
+  if (loadingCourses) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
         <CircularProgress />
+        <Typography variant="body1" sx={{ ml: 2 }}>
+          Đang tải danh sách khóa học...
+        </Typography>
       </Box>
     );
   }
-    // Update the handleCreateLessons function
-    // Replace the handleCreateLessons function
-  
-  const handleCreateLessons = async () => {
-    if (!courseId) {
-      setNotification({
-        open: true,
-        message: 'Vui lòng tạo khóa học trước!',
-        severity: 'warning'
-      });
-      return;
-    }
-    
-    setLoading(true);
-    
-    try {
-      // Get a fresh token
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.');
-      }
-      
-      // Process each chapter
-      for (const chapter of chapters) {
-        if (!chapter.id) {
-          console.warn(`Chapter without ID found, skipping: ${chapter.title}`);
-          continue;
-        }
-        
-        console.log(`Creating lessons for chapter ID ${chapter.id}`);
-        
-        // Create lessons for this chapter
-        for (let i = 0; i < chapter.lessons.length; i++) {
-          const lesson = chapter.lessons[i];
-          
-          // Create lesson
-          const lessonPayload = {
-            title: lesson.title,
-            type: lesson.type,
-            videoUrl: lesson.type === 'VIDEO' ? lesson.videoUrl : null
-          };
-          
-          console.log(`Creating lesson: ${lesson.title}, type: ${lesson.type}`);
-          
-          // Use explicit token in request headers
-          const lessonResponse = await axiosInstance.post(`/lessons/chapter/${chapter.id}`, lessonPayload, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          const lessonId = lessonResponse.data.id;
-          console.log(`Lesson created with ID: ${lessonId}`);
-          
-          // If it's a quiz, create questions
-          if (lesson.type === 'QUIZ' && lesson.questions && lesson.questions.length > 0) {
-            console.log(`Creating ${lesson.questions.length} questions for quiz`);
-            
-            for (const question of lesson.questions) {
-              // Find the correct answer index
-              const correctOptionIndex = question.options.findIndex(opt => opt.isCorrect);
-              const correctAnswer = correctOptionIndex !== -1 ? correctOptionIndex.toString() : '0';
-              
-              // Format payload to match the backend expectation
-              const questionPayload = {
-                questionText: question.questionText,
-                correctAnswer: correctAnswer,
-                options: question.options.map(opt => ({ text: opt.text }))
-              };
-              
-              // Use the correct endpoint with explicit token
-              await axiosInstance.post(`/quizzes/lesson/${lessonId}/questions`, questionPayload, {
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json'
-                }
-              });
-              
-              console.log(`Created question: ${question.questionText}`);
-            }
-          }
-        }
-      }
-            // Replace the handlePublishCourse function
-      
-      const handlePublishCourse = async () => {
-        if (!courseId) {
-          setNotification({
-            open: true,
-            message: 'Không tìm thấy ID khóa học!',
-            severity: 'error'
-          });
-          return;
-        }
-        
-        setLoading(true);
-        
-        try {
-          const token = localStorage.getItem('token');
-          if (!token) {
-            throw new Error('Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.');
-          }
-          
-          // Use the featured endpoint since there's no dedicated publish endpoint
-          await axiosInstance.put(`/admin/courses/${courseId}/featured`, {}, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          // Also update the course details to mark it as published in the title
-          const courseDetails = await axiosInstance.get(`/admin/courses/${courseId}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          
-          // Update the course data
-          const updatedCourse = {
-            ...courseDetails.data,
-            title: courseDetails.data.title.includes('[PUBLISHED]') ? 
-              courseDetails.data.title : 
-              `[PUBLISHED] ${courseDetails.data.title}`
-          };
-          
-          await axiosInstance.put(`/admin/courses/${courseId}`, updatedCourse, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          setNotification({
-            open: true,
-            message: 'Khóa học đã được xuất bản thành công!',
-            severity: 'success'
-          });
-          
-          // Redirect to course management after short delay
-          setTimeout(() => {
-            navigate('/admin/courses');
-          }, 2000);
-        } catch (error) {
-          console.error('Error publishing course:', error);
-          
-          let errorMessage = 'Không thể xuất bản khóa học.';
-          
-          if (error.response && error.response.data && error.response.data.message) {
-            errorMessage = `Lỗi: ${error.response.data.message}`;
-          } else if (error.message) {
-            errorMessage = error.message;
-          }
-          
-          setNotification({
-            open: true,
-            message: errorMessage,
-            severity: 'error'
-          });
-        } finally {
-          setLoading(false);
-        }
-      };
-      
-      setNotification({
-        open: true,
-        message: 'Tất cả bài học và quiz đã được tạo thành công!',
-        severity: 'success'
-      });
-      
-      // Move to final step
-      setActiveStep(3);
-      setIsPublished(true);
-    } catch (error) {
-      console.error('Error creating lessons:', error);
-      
-      let errorMessage = 'Không thể tạo bài học.';
-      
-      if (error.response) {
-        if (error.response.status === 403) {
-          errorMessage = 'Bạn không có quyền thực hiện thao tác này. Vui lòng đăng nhập lại với tài khoản admin.';
-        } else if (error.response.data && error.response.data.message) {
-          errorMessage = `Lỗi: ${error.response.data.message}`;
-        }
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      setNotification({
-        open: true,
-        message: errorMessage,
-        severity: 'error'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" component="h1">
-          Quản lý chương
-        </Typography>
-        {chapters.length > 0 && (
-          <Button 
-            variant="outlined" 
-            color={reorderMode ? "secondary" : "primary"}
-            onClick={toggleReorderMode}
-          >
-            {reorderMode ? "Thoát sắp xếp" : "Sắp xếp lại"}
-          </Button>
-        )}
-      </Box>
-
-      <Paper sx={{ p: 3, mb: 4 }}>
-        <Typography variant="h6" sx={{ mb: 2 }}>
-          {editingChapter ? 'Chỉnh sửa chương' : 'Thêm chương mới'}
-        </Typography>
-        <TextField
-          fullWidth
-          label="Tiêu đề chương"
-          value={newChapterTitle}
-          onChange={(e) => setNewChapterTitle(e.target.value)}
-          margin="normal"
-        />
-        <TextField
-          fullWidth
-          label="Mô tả chương (tùy chọn)"
-          value={newChapterDescription}
-          onChange={(e) => setNewChapterDescription(e.target.value)}
-          margin="normal"
-          multiline
-          rows={3}
-        />
-        <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-          {editingChapter && (
-            <Button 
-              variant="outlined" 
-              onClick={handleCancelEditing}
-              sx={{ mr: 1 }}
-            >
-              Hủy
-            </Button>
-          )}
-          <Button 
-            variant="contained" 
-            color="primary" 
-            startIcon={editingChapter ? <EditIcon /> : <AddIcon />}
-            onClick={editingChapter ? handleUpdateChapter : handleCreateChapter}
-          >
-            {editingChapter ? 'Cập nhật' : 'Thêm chương'}
-          </Button>
-        </Box>
-      </Paper>
-
-      <Typography variant="h6" sx={{ mb: 2 }}>
-        Danh sách chương
+      <Typography variant="h4" component="h1" gutterBottom>
+        Quản lý chương khóa học
       </Typography>
 
-      {chapters.length === 0 ? (
-        <Card>
-          <CardContent>
-            <Typography align="center">Chưa có chương nào. Bạn có thể thêm chương mới ở trên.</Typography>
-          </CardContent>
-        </Card>
-      ) : (
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable droppableId="chapters" isDropDisabled={!reorderMode}>
-            {(provided) => (
-              <List 
-                sx={{ 
-                  bgcolor: 'background.paper',
-                  borderRadius: 1,
-                  boxShadow: 1
-                }}
-                ref={provided.innerRef}
-                {...provided.droppableProps}
+      {/* Course selection */}
+      <Paper sx={{ p: 3, mb: 4 }}>
+        <Typography variant="h6" sx={{ mb: 2 }}>
+          Chọn khóa học
+        </Typography>
+        <FormControl fullWidth>
+          <InputLabel id="course-select-label">Khóa học</InputLabel>
+          <Select
+            labelId="course-select-label"
+            value={selectedCourseId}
+            onChange={handleCourseChange}
+            label="Khóa học"
+          >
+            <MenuItem value="">
+              <em>-- Chọn khóa học --</em>
+            </MenuItem>
+            {courses.map((course) => (
+              <MenuItem key={course.id} value={course.id}>
+                {course.title}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Paper>
+
+      {selectedCourseId && (
+        <>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <SchoolIcon sx={{ mr: 1, color: 'primary.main' }} />
+              <Typography variant="h5" component="h2">
+                {selectedCourseName}
+              </Typography>
+            </Box>
+            {chapters.length > 0 && (
+              <Button 
+                variant="outlined" 
+                color={reorderMode ? "secondary" : "primary"}
+                onClick={toggleReorderMode}
               >
-                {chapters.map((chapter, index) => (
-                  <Draggable 
-                    key={chapter.id} 
-                    draggableId={chapter.id.toString()} 
-                    index={index}
-                    isDragDisabled={!reorderMode}
-                  >
-                    {(provided) => (
-                      <ListItem
-                        ref={provided.innerRef}
-                        {...provided.draggableProps}
-                        sx={{ 
-                          borderBottom: index < chapters.length - 1 ? '1px solid rgba(0, 0, 0, 0.12)' : 'none',
-                          cursor: reorderMode ? 'move' : 'default'
-                        }}
-                      >
-                        {reorderMode && (
-                          <Box {...provided.dragHandleProps} sx={{ mr: 2 }}>
-                            <DragHandleIcon />
-                          </Box>
-                        )}
-                        <ListItemText
-                          primary={
-                            <Typography variant="subtitle1" component="div">
-                              {chapter.order}. {chapter.title}
-                            </Typography>
-                          }
-                          secondary={
-                            <>
-                              <Typography variant="body2" color="text.secondary" component="div">
-                                {chapter.description || 'Không có mô tả'}
-                              </Typography>
-                              <Typography variant="body2" color="primary" component="div">
-                                {chapter.lessonsCount} bài học
-                              </Typography>
-                            </>
-                          }
-                        />
-                        <ListItemSecondaryAction>
-                          <IconButton
-                            edge="end" 
-                            color="secondary"
-                            onClick={() => handleManageLessons(chapter.id)}
-                            title="Quản lý bài học"
-                            sx={{ mr: 1 }}
-                          >
-                            <MenuBookIcon />
-                          </IconButton>
-                          <IconButton 
-                            edge="end" 
-                            color="primary"
-                            onClick={() => handleStartEditing(chapter)}
-                            title="Chỉnh sửa chương"
-                            sx={{ mr: 1 }}
-                          >
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton 
-                            edge="end" 
-                            color="error"
-                            onClick={() => handleDeleteChapter(chapter.id)}
-                            title="Xóa chương"
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </ListItemSecondaryAction>
-                      </ListItem>
-                    )}
-                  </Draggable>
-                ))}
-                {provided.placeholder}
-              </List>
+                {reorderMode ? "Thoát sắp xếp" : "Sắp xếp lại chương"}
+              </Button>
             )}
-          </Droppable>
-        </DragDropContext>
+          </Box>
+
+          <Paper sx={{ p: 3, mb: 4 }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              {editingChapter ? 'Chỉnh sửa chương' : 'Thêm chương mới'}
+            </Typography>
+            <TextField
+              fullWidth
+              label="Tiêu đề chương"
+              value={newChapterTitle}
+              onChange={(e) => setNewChapterTitle(e.target.value)}
+              margin="normal"
+              required
+              placeholder="Ví dụ: Chương 1: Giới thiệu"
+            />
+            <TextField
+              fullWidth
+              label="Mô tả chương"
+              value={newChapterDescription}
+              onChange={(e) => setNewChapterDescription(e.target.value)}
+              margin="normal"
+              multiline
+              rows={3}
+              placeholder="Mô tả nội dung chính của chương này"
+            />
+            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+              {editingChapter && (
+                <Button 
+                  variant="outlined" 
+                  onClick={handleCancelEditing}
+                  sx={{ mr: 1 }}
+                >
+                  Hủy
+                </Button>
+              )}
+              <Button 
+                variant="contained" 
+                color="primary" 
+                startIcon={editingChapter ? <EditIcon /> : <AddIcon />}
+                onClick={editingChapter ? handleUpdateChapter : handleCreateChapter}
+              >
+                {editingChapter ? 'Cập nhật chương' : 'Thêm chương mới'}
+              </Button>
+            </Box>
+          </Paper>
+
+          <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h6">
+              Danh sách chương ({chapters.length})
+            </Typography>
+            {loading && <CircularProgress size={24} />}
+          </Box>
+
+          {!loading && chapters.length === 0 ? (
+            <Card>
+              <CardContent sx={{ textAlign: 'center', py: 4 }}>
+                <Typography color="text.secondary">
+                  Chưa có chương nào cho khóa học này. Hãy thêm chương mới ở trên.
+                </Typography>
+              </CardContent>
+            </Card>
+          ) : (
+            <DragDropContext onDragEnd={handleDragEnd}>
+              <Droppable droppableId="chapters" isDropDisabled={!reorderMode}>
+                {(provided) => (
+                  <List 
+                    sx={{ 
+                      bgcolor: 'background.paper',
+                      borderRadius: 1,
+                      boxShadow: 1
+                    }}
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                  >
+                    {chapters.map((chapter, index) => (
+                      <Draggable 
+                        key={chapter.id} 
+                        draggableId={chapter.id.toString()} 
+                        index={index}
+                        isDragDisabled={!reorderMode}
+                      >
+                        {(provided) => (
+                          <ListItem
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            sx={{ 
+                              borderBottom: index < chapters.length - 1 ? '1px solid rgba(0, 0, 0, 0.12)' : 'none',
+                              cursor: reorderMode ? 'move' : 'default',
+                              py: 2
+                            }}
+                          >
+                            {reorderMode && (
+                              <Box {...provided.dragHandleProps} sx={{ mr: 2 }}>
+                                <DragHandleIcon />
+                              </Box>
+                            )}
+                            <ListItemText
+                              primary={
+                                <Typography variant="subtitle1" component="div">
+                                  {chapter.order}. {chapter.title}
+                                </Typography>
+                              }
+                              secondary={
+                                <>
+                                  <Typography variant="body2" color="text.secondary" component="div">
+                                    {chapter.description || 'Không có mô tả'}
+                                  </Typography>
+                                  <Typography variant="body2" color="primary" component="div" sx={{ mt: 0.5 }}>
+                                    {chapter.lessonsCount} bài học • {chapter.completedLessons || 0} đã hoàn thành
+                                  </Typography>
+                                </>
+                              }
+                            />
+                            <ListItemSecondaryAction>
+                              <IconButton
+                                color="secondary"
+                                onClick={() => handleManageLessons(chapter.id)}
+                                title="Quản lý bài học"
+                                sx={{ mr: 1 }}
+                              >
+                                <MenuBookIcon />
+                              </IconButton>
+                              <IconButton 
+                                color="primary"
+                                onClick={() => handleStartEditing(chapter)}
+                                title="Chỉnh sửa chương"
+                                sx={{ mr: 1 }}
+                              >
+                                <EditIcon />
+                              </IconButton>
+                              <IconButton 
+                                color="error"
+                                onClick={() => handleDeleteChapter(chapter.id)}
+                                title="Xóa chương"
+                              >
+                                <DeleteIcon />
+                              </IconButton>
+                            </ListItemSecondaryAction>
+                          </ListItem>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </List>
+                )}
+              </Droppable>
+            </DragDropContext>
+          )}
+        </>
       )}
 
-      {/* Notification */}
+      {!selectedCourseId && !loadingCourses && (
+        <Box sx={{ py: 4, textAlign: 'center' }}>
+          <Typography variant="body1" color="text.secondary">
+            Vui lòng chọn một khóa học để quản lý các chương.
+          </Typography>
+        </Box>
+      )}
+
       <Snackbar 
         open={notification.open} 
         autoHideDuration={6000} 
         onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         <Alert 
           onClose={handleCloseNotification} 
@@ -579,9 +551,9 @@ const AdminChapterList = ({ courseId }) => {
   );
 };
 
-// Thêm PropTypes validation
+// Cập nhật PropTypes để initialCourseId là optional
 AdminChapterList.propTypes = {
-  courseId: PropTypes.string.isRequired
+  initialCourseId: PropTypes.oneOfType([PropTypes.number, PropTypes.string])
 };
 
 export default AdminChapterList;

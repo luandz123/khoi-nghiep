@@ -1,10 +1,10 @@
-// src/pages/CourseDetailPage.js
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Container, Typography, Grid, Button, Card, Accordion, AccordionSummary,
   AccordionDetails, List, ListItem, ListItemIcon, ListItemText, Chip, Divider,
-  Avatar, Rating, Tab, Tabs, Dialog, DialogContent, DialogActions, IconButton
+  Avatar, Rating, Tab, Tabs, Dialog, DialogContent, IconButton, CardContent, 
+  CircularProgress, Paper, Badge, Tooltip, ButtonGroup
 } from '@mui/material';
 import {
   ExpandMore as ExpandMoreIcon,
@@ -13,6 +13,7 @@ import {
   Check as CheckIcon,
   PlayArrow as PlayArrowIcon,
   Share as ShareIcon,
+  ArrowBack as ArrowBackIcon,
   Favorite as FavoriteIcon,
   FavoriteBorder as FavoriteBorderIcon,
   Close as CloseIcon,
@@ -20,11 +21,23 @@ import {
   Timer as TimerIcon,
   BarChart as LevelIcon,
   Group as StudentsIcon,
-  CheckCircle as CheckCircleIcon
+  CheckCircle as CheckCircleIcon,
+  NavigateNext as NextIcon,
+  NavigateBefore as PrevIcon,
+  Description as DescriptionIcon,
+  Forum as ForumIcon,
+  CloudDownload as DownloadIcon,
+  Note as NoteIcon,
+  Announcement as AnnouncementIcon
 } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import axiosInstance from '../utils/axiosConfig';
 import './CourseDetailPage.css';
+
+// Import các component con
+import CourseOverview from '../components/CourseOverview';
+import LessonPlayer from '../components/LessonPlayer';
+import QuizPlayer from '../components/QuizPlayer';
 
 const CourseDetailPage = () => {
   const { id } = useParams();
@@ -41,6 +54,8 @@ const CourseDetailPage = () => {
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [copySuccess, setCopySuccess] = useState('');
   const [favorited, setFavorited] = useState(false);
+  const [lessons, setLessons] = useState({});
+  const [contentTab, setContentTab] = useState(0); // Tab cho phần nội dung khi xem bài học
 
   useEffect(() => {
     const fetchCourseDetails = async () => {
@@ -63,6 +78,16 @@ const CourseDetailPage = () => {
           if (enrollmentResponse.data) {
             const progressResponse = await axiosInstance.get(`/courses/${id}/progress`);
             setProgress(progressResponse.data.percentComplete || 0);
+            
+            // Pre-load lessons for chapters
+            if (chaptersResponse.data.length > 0) {
+              chaptersResponse.data.forEach(chapter => {
+                fetchLessonsForChapter(chapter.id);
+              });
+              
+              // Auto-expand first chapter
+              setExpandedChapter(chaptersResponse.data[0].id);
+            }
           }
         } catch (error) {
           console.log('Not logged in or not enrolled');
@@ -130,14 +155,85 @@ const CourseDetailPage = () => {
     setCurrentTab(newValue);
   };
 
+  const handleContentTabChange = (event, newValue) => {
+    setContentTab(newValue);
+  };
+
   const handleChapterClick = (chapterId) => {
     setExpandedChapter(expandedChapter === chapterId ? null : chapterId);
+    
+    // Fetch lessons for the chapter if not already loaded
+    if (chapterId && !lessons[chapterId]) {
+      fetchLessonsForChapter(chapterId);
+    }
+  };
+  
+  const fetchLessonsForChapter = async (chapterId) => {
+    try {
+      const response = await axiosInstance.get(`/lessons/chapter/${chapterId}`);
+      setLessons(prev => ({
+        ...prev,
+        [chapterId]: response.data
+      }));
+    } catch (error) {
+      console.error('Error fetching lessons for chapter:', error);
+      // Set mock data if API fails
+      setLessons(prev => ({
+        ...prev,
+        [chapterId]: Array.from({ length: chapters.find(c => c.id === chapterId).lessonsCount }, (_, i) => ({
+          id: `${chapterId}-${i+1}`,
+          title: `Bài ${i+1}: ${i % 2 === 0 ? 'Video' : 'Quiz'} - ${chapters.find(c => c.id === chapterId).title}`,
+          type: i % 2 === 0 ? 'VIDEO' : 'QUIZ',
+          duration: i % 2 === 0 ? '10:30' : '5 câu hỏi',
+          content: i % 2 === 0 ? 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' : null,
+          completed: i < (chapters.find(c => c.id === chapterId).completedLessons || 0)
+        }))
+      }));
+    }
   };
 
   const handleLessonClick = (chapterId, lesson) => {
     setCurrentChapter(chapterId);
     setCurrentLesson(lesson);
-    setCurrentTab(1); // Switch to content tab
+    setContentTab(0); // Reset về tab nội dung chính khi chuyển bài
+  };
+
+  // Tìm bài học trước và sau
+  const findAdjacentLessons = () => {
+    if (!currentLesson || !currentChapter) return { prev: null, next: null };
+    
+    // Tạo mảng phẳng của tất cả bài học từ tất cả chương
+    let allLessons = [];
+    let currentIndex = -1;
+    
+    chapters.forEach(chapter => {
+      if (lessons[chapter.id]) {
+        const chapterLessons = lessons[chapter.id].map(lesson => ({
+          ...lesson,
+          chapterId: chapter.id
+        }));
+        allLessons = [...allLessons, ...chapterLessons];
+      }
+    });
+    
+    // Tìm vị trí bài học hiện tại
+    currentIndex = allLessons.findIndex(lesson => 
+      lesson.id === currentLesson.id && lesson.chapterId === currentChapter
+    );
+    
+    return {
+      prev: currentIndex > 0 ? allLessons[currentIndex - 1] : null,
+      next: currentIndex < allLessons.length - 1 ? allLessons[currentIndex + 1] : null
+    };
+  };
+  
+  const handleNavigateLesson = (direction) => {
+    const { prev, next } = findAdjacentLessons();
+    const targetLesson = direction === 'next' ? next : prev;
+    
+    if (targetLesson) {
+      handleLessonClick(targetLesson.chapterId, targetLesson);
+    }
   };
 
   const handleEnrollCourse = async () => {
@@ -151,6 +247,17 @@ const CourseDetailPage = () => {
       const response = await axiosInstance.post(`/courses/enroll/${id}`);
       if (response.data && response.data.success) {
         setIsEnrolled(true);
+        
+        // Pre-load lessons for chapters after enrollment
+        chapters.forEach(chapter => {
+          fetchLessonsForChapter(chapter.id);
+        });
+        
+        // Auto-expand first chapter
+        if (chapters.length > 0) {
+          setExpandedChapter(chapters[0].id);
+        }
+        
         alert('Đăng ký khóa học thành công!');
       } else {
         alert(response.data?.message || 'Đăng ký khóa học thất bại. Vui lòng thử lại sau.');
@@ -199,26 +306,56 @@ const CourseDetailPage = () => {
     setFavorited(!favorited);
   };
 
-  // Function to get YouTube embed URL
-  const getYoutubeEmbedUrl = (url) => {
-    if (!url) return '';
-    
+  const handleReturnToCourse = () => {
+    setCurrentLesson(null);
+  };
+
+  const handleLessonComplete = async (lessonId) => {
     try {
-      const videoId = url.includes('v=') 
-        ? url.split('v=')[1].split('&')[0]
-        : url.split('/').pop();
+      await axiosInstance.post(`/lessons/${lessonId}/complete`);
+      
+      // Update the local state to show completion
+      if (currentChapter && lessons[currentChapter]) {
+        setLessons(prev => {
+          const updatedLessons = prev[currentChapter].map(lesson => 
+            lesson.id === lessonId ? { ...lesson, completed: true } : lesson
+          );
+          return {
+            ...prev,
+            [currentChapter]: updatedLessons
+          };
+        });
         
-      return `https://www.youtube.com/embed/${videoId}`;
+        // Update chapter completion count
+        setChapters(prev => 
+          prev.map(chapter => 
+            chapter.id === currentChapter 
+              ? { ...chapter, completedLessons: (chapter.completedLessons || 0) + 1 } 
+              : chapter
+          )
+        );
+        
+        // Update overall progress
+        const newCompletedLessons = chapters.reduce(
+          (total, chapter) => chapter.id === currentChapter 
+            ? total + (chapter.completedLessons || 0) + 1 
+            : total + (chapter.completedLessons || 0), 
+          0
+        );
+        const totalLessons = chapters.reduce((total, chapter) => total + chapter.lessonsCount, 0);
+        const newProgress = Math.round((newCompletedLessons / totalLessons) * 100);
+        setProgress(newProgress);
+      }
     } catch (error) {
-      console.error('Error parsing YouTube URL:', error);
-      return url;
+      console.error('Error marking lesson as complete:', error);
     }
   };
 
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '70vh' }}>
-        <Typography variant="h5">Đang tải...</Typography>
+        <CircularProgress />
+        <Typography variant="h5" sx={{ ml: 2 }}>Đang tải...</Typography>
       </Box>
     );
   }
@@ -227,453 +364,402 @@ const CourseDetailPage = () => {
   const totalLessons = chapters.reduce((total, chapter) => total + chapter.lessonsCount, 0);
   const completedLessons = chapters.reduce((total, chapter) => total + (chapter.completedLessons || 0), 0);
 
-  return (
-    <Container className="course-detail-container" maxWidth="lg" sx={{ mt: 4, mb: 8 }}>
-      <Grid container spacing={4}>
-        {/* Main Content */}
-        <Grid item xs={12} md={8}>
-          {currentLesson ? (
-            // Lesson View
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Button
-                onClick={() => setCurrentLesson(null)}
-                sx={{ mb: 2 }}
-                startIcon={<ArrowBackIcon />}
-              >
-                Quay lại khóa học
-              </Button>
-              
-              {/* Video Player */}
-              <div className="video-container">
-                <iframe
-                  src={getYoutubeEmbedUrl(courseDetail.videoUrl)}
-                  title={courseDetail.title}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
+  // Render the course sidebar with lesson list
+  const renderCourseSidebar = () => {
+    const { prev, next } = findAdjacentLessons();
+    
+    return (
+      <Paper elevation={2} sx={{ height: '100%' }}>
+        <Box sx={{ p: 2, bgcolor: 'primary.main', color: 'white' }}>
+          <Typography variant="subtitle1" fontWeight="bold" noWrap>
+            Nội dung khóa học
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+            <Box sx={{ flexGrow: 1, mr: 1 }}>
+              <div className="progress-indicator" style={{ backgroundColor: 'rgba(255,255,255,0.3)' }}>
+                <div
+                  className="progress-bar"
+                  style={{ 
+                    backgroundColor: 'white',
+                    boxShadow: '0 0 5px rgba(255,255,255,0.7)',
+                    width: `${progress}%` 
+                  }}
                 />
               </div>
+            </Box>
+            <Typography variant="caption" fontWeight="bold">
+              {progress}%
+            </Typography>
+          </Box>
+        </Box>
+
+        <Divider />
+        
+        <Box sx={{ 
+          maxHeight: currentLesson ? 'calc(100vh - 300px)' : 'calc(100vh - 200px)', 
+          overflowY: 'auto', 
+          pt: 1 
+        }}>
+          {chapters.map((chapter) => (
+            <Accordion 
+              key={chapter.id}
+              expanded={expandedChapter === chapter.id}
+              onChange={() => handleChapterClick(chapter.id)}
+              disableGutters
+              elevation={0}
+              sx={{ 
+                '&:before': { display: 'none' },
+                borderBottom: '1px solid rgba(0,0,0,0.08)'
+              }}
+            >
+              <AccordionSummary 
+                expandIcon={<ExpandMoreIcon />}
+                sx={{ px: 2, py: 1 }}
+              >
+                <Box sx={{ width: '100%' }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between'
+                  }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                      {chapter.title}
+                    </Typography>
+                    <Badge 
+                      badgeContent={`${chapter.completedLessons || 0}/${chapter.lessonsCount}`} 
+                      color={chapter.completedLessons === chapter.lessonsCount ? "success" : "primary"}
+                      sx={{ ml: 1 }}
+                    />
+                  </Box>
+                </Box>
+              </AccordionSummary>
               
-              <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold', mt: 2 }}>
-                {currentLesson.title}
+              <AccordionDetails sx={{ p: 0 }}>
+                <List dense disablePadding>
+                  {lessons[chapter.id] ? (
+                    lessons[chapter.id].map((lesson) => (
+                      <ListItem
+                        key={lesson.id}
+                        button
+                        selected={currentLesson && currentLesson.id === lesson.id}
+                        onClick={() => handleLessonClick(chapter.id, lesson)}
+                        sx={{ 
+                          pl: 3,
+                          borderLeft: currentLesson && currentLesson.id === lesson.id ? 
+                            '3px solid #1976d2' : 'none',
+                          bgcolor: currentLesson && currentLesson.id === lesson.id ? 
+                            'rgba(25, 118, 210, 0.08)' : 'inherit',
+                          '&:hover': {
+                            bgcolor: 'rgba(0, 0, 0, 0.04)'
+                          }
+                        }}
+                      >
+                        <ListItemIcon sx={{ minWidth: 36 }}>
+                          {lesson.completed ? (
+                            <CheckCircleIcon color="success" fontSize="small" />
+                          ) : (
+                            lesson.type === 'VIDEO' ? (
+                              <PlayCircleIcon fontSize="small" color="primary" />
+                            ) : (
+                              <QuizIcon fontSize="small" color="secondary" />
+                            )
+                          )}
+                        </ListItemIcon>
+                        
+                        <ListItemText
+                          primary={
+                            <Typography 
+                              variant="body2" 
+                              sx={{ 
+                                fontWeight: currentLesson && currentLesson.id === lesson.id ? 'bold' : 'normal',
+                                color: lesson.completed ? 'text.secondary' : 'text.primary'
+                              }}
+                            >
+                              {lesson.title}
+                            </Typography>
+                          }
+                          secondary={lesson.duration}
+                          secondaryTypographyProps={{ variant: 'caption' }}
+                        />
+                      </ListItem>
+                    ))
+                  ) : (
+                    <ListItem>
+                      <ListItemText 
+                        primary={<CircularProgress size={20} />} 
+                        secondary="Đang tải..." 
+                        secondaryTypographyProps={{ variant: 'caption' }}
+                      />
+                    </ListItem>
+                  )}
+                </List>
+              </AccordionDetails>
+            </Accordion>
+          ))}
+        </Box>
+        
+        {currentLesson && (
+          <Box sx={{ p: 2, borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+            <ButtonGroup fullWidth size="small" variant="outlined">
+              <Button
+                startIcon={<PrevIcon />}
+                onClick={() => handleNavigateLesson('prev')}
+                disabled={!prev}
+              >
+                Bài trước
+              </Button>
+              <Button
+                endIcon={<NextIcon />}
+                onClick={() => handleNavigateLesson('next')}
+                disabled={!next}
+              >
+                Bài tiếp
+              </Button>
+            </ButtonGroup>
+          </Box>
+        )}
+      </Paper>
+    );
+  };
+
+  // Render enrollment card
+  const renderEnrollmentCard = () => {
+    return (
+      <Card sx={{ position: 'sticky', top: 20 }} elevation={3}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }}>
+            Đăng ký khóa học
+          </Typography>
+          
+          <Typography variant="body1" paragraph sx={{ display: 'flex', alignItems: 'center' }}>
+            <TrophyIcon sx={{ color: 'warning.main', mr: 1 }} />
+            Truy cập toàn bộ {totalLessons} bài học
+          </Typography>
+          
+          <Typography variant="body1" paragraph sx={{ display: 'flex', alignItems: 'center' }}>
+            <CheckCircleIcon sx={{ color: 'success.main', mr: 1 }} />
+            Học bất kỳ đâu, bất kỳ lúc nào
+          </Typography>
+          
+          <Button
+            variant="contained"
+            color="primary"
+            size="large"
+            fullWidth
+            onClick={handleEnrollCourse}
+            className="enroll-button"
+            sx={{ mb: 2 }}
+          >
+            Đăng ký ngay
+          </Button>
+          
+          <Divider sx={{ my: 2 }} />
+          
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Button
+              startIcon={favorited ? <FavoriteIcon color="error" /> : <FavoriteBorderIcon />}
+              onClick={toggleFavorite}
+            >
+              {favorited ? 'Đã yêu thích' : 'Yêu thích'}
+            </Button>
+            
+            <Button
+              startIcon={<ShareIcon />}
+              onClick={handleShareClick}
+            >
+              Chia sẻ
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const renderContentTabs = () => {
+    return (
+      <Box sx={{ width: '100%', bgcolor: 'background.paper', mt: 2 }}>
+        <Tabs
+          value={contentTab}
+          onChange={handleContentTabChange}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{ borderBottom: 1, borderColor: 'divider' }}
+        >
+          <Tab icon={<DescriptionIcon fontSize="small" />} iconPosition="start" label="Nội dung" />
+          <Tab icon={<ForumIcon fontSize="small" />} iconPosition="start" label="Hỏi đáp" />
+          <Tab icon={<DownloadIcon fontSize="small" />} iconPosition="start" label="Tài liệu" />
+          <Tab icon={<NoteIcon fontSize="small" />} iconPosition="start" label="Ghi chú" />
+          <Tab icon={<AnnouncementIcon fontSize="small" />} iconPosition="start" label="Thông báo" />
+        </Tabs>
+        
+        <Box sx={{ p: 2 }}>
+          {contentTab === 0 && (
+            <Typography variant="body2">
+              {currentLesson?.description || "Mô tả bài học sẽ xuất hiện ở đây."}
+            </Typography>
+          )}
+          {contentTab === 1 && (
+            <Box>
+              <Typography variant="subtitle1" gutterBottom>Hỏi đáp về bài học này</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Chưa có câu hỏi nào. Hãy là người đầu tiên đặt câu hỏi!
               </Typography>
-              
-              <Typography variant="body1" paragraph>
-                {currentLesson.description}
+            </Box>
+          )}
+          {contentTab === 2 && (
+            <Box>
+              <Typography variant="subtitle1" gutterBottom>Tài liệu đính kèm</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Không có tài liệu đính kèm cho bài học này.
               </Typography>
-              
-              <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
+            </Box>
+          )}
+          {contentTab === 3 && (
+            <Box>
+              <Typography variant="subtitle1" gutterBottom>Ghi chú cá nhân</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Tính năng ghi chú đang được phát triển.
+              </Typography>
+            </Box>
+          )}
+          {contentTab === 4 && (
+            <Box>
+              <Typography variant="subtitle1" gutterBottom>Thông báo từ giảng viên</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Không có thông báo mới.
+              </Typography>
+            </Box>
+          )}
+        </Box>
+      </Box>
+    );
+  };
+
+  return (
+    <Container className="course-detail-container" maxWidth="lg" sx={{ mt: 4, mb: 8 }}>
+      {/* Course Title - only show when not in lesson view */}
+      {!currentLesson && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold', mb: 3 }}>
+            {courseDetail.title}
+          </Typography>
+        </motion.div>
+      )}
+      
+      <Grid container spacing={3}>
+        {/* Left Sidebar - always show for enrolled users */}
+        {(isEnrolled || currentLesson) && (
+          <Grid item xs={12} md={4} lg={3}>
+            {renderCourseSidebar()}
+          </Grid>
+        )}
+        
+        {/* Main Content */}
+        <Grid item xs={12} md={isEnrolled || currentLesson ? 8 : 8} lg={isEnrolled || currentLesson ? 9 : 8}>
+          {currentLesson ? (
+            <Box>
+              {/* Lesson Title and Back Button */}
+              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<CheckIcon />}
+                  onClick={handleReturnToCourse}
+                  startIcon={<ArrowBackIcon />}
+                  sx={{ mb: 1 }}
                 >
-                  Đánh dấu hoàn thành
+                  Quay lại khóa học
                 </Button>
                 
-                <Button
-                  variant="outlined"
-                  startIcon={<ShareIcon />}
-                  onClick={handleShareClick}
-                >
-                  Chia sẻ
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Tooltip title="Chia sẻ bài học">
+                    <IconButton onClick={handleShareClick} size="small">
+                      <ShareIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
               </Box>
-            </motion.div>
+              
+              {/* Render appropriate content based on lesson type */}
+              <Paper elevation={2} sx={{ mb: 2, overflow: 'hidden' }}>
+                {currentLesson.type === 'QUIZ' ? (
+                  <QuizPlayer 
+                    lesson={currentLesson} 
+                    onBack={handleReturnToCourse}  
+                    onComplete={() => handleLessonComplete(currentLesson.id)} 
+                  />
+                ) : (
+                  <LessonPlayer 
+                    lesson={currentLesson} 
+                    onBack={handleReturnToCourse} 
+                    onComplete={() => handleLessonComplete(currentLesson.id)}
+                    onShare={handleShareClick} 
+                  />
+                )}
+              </Paper>
+              
+              {/* Additional Content Tabs */}
+              {renderContentTabs()}
+              
+              {/* Navigation Buttons - Bottom */}
+              <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between' }}>
+                <ButtonGroup variant="outlined">
+                  <Button
+                    startIcon={<PrevIcon />}
+                    onClick={() => handleNavigateLesson('prev')}
+                    disabled={!findAdjacentLessons().prev}
+                  >
+                    Bài trước
+                  </Button>
+                  <Button
+                    endIcon={<NextIcon />}
+                    onClick={() => handleNavigateLesson('next')}
+                    disabled={!findAdjacentLessons().next}
+                  >
+                    Bài tiếp
+                  </Button>
+                </ButtonGroup>
+                
+                {!currentLesson.completed && (
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<CheckIcon />}
+                    onClick={() => handleLessonComplete(currentLesson.id)}
+                  >
+                    Đánh dấu hoàn thành
+                  </Button>
+                )}
+              </Box>
+            </Box>
           ) : (
             // Course Overview
-            <Box>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-              >
-                <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold' }}>
-                  {courseDetail.title}
-                </Typography>
-                
-                <Box sx={{ mb: 3, display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
-                  <Chip
-                    label={courseDetail.categoryName}
-                    color="primary"
-                    variant="outlined"
-                    size="small"
-                    className="stat-chip"
-                  />
-                  
-                  <Chip
-                    icon={<LevelIcon fontSize="small" />}
-                    label={courseDetail.level}
-                    variant="outlined"
-                    size="small"
-                    className="stat-chip"
-                  />
-                  
-                  <Chip
-                    icon={<TimerIcon fontSize="small" />}
-                    label={courseDetail.duration}
-                    variant="outlined"
-                    size="small"
-                    className="stat-chip"
-                  />
-                  
-                  <Chip
-                    icon={<StudentsIcon fontSize="small" />}
-                    label={`${courseDetail.studentsCount || 0} học viên`}
-                    variant="outlined"
-                    size="small"
-                    className="stat-chip"
-                  />
-                  
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Rating value={courseDetail.rating || 4.5} precision={0.5} readOnly size="small" />
-                    <Typography variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
-                      ({courseDetail.rating || 4.5})
-                    </Typography>
-                  </Box>
-                </Box>
-                
-                {/* Video preview */}
-                <div className="video-container">
-                  <iframe
-                    src={getYoutubeEmbedUrl(courseDetail.videoUrl)}
-                    title={courseDetail.title}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
-                </div>
-                
-                <Box sx={{ mt: 4 }}>
-                  <Tabs value={currentTab} onChange={handleTabChange} sx={{ mb: 2 }}>
-                    <Tab label="Giới thiệu" />
-                    <Tab label="Nội dung khóa học" />
-                    <Tab label="Đánh giá" />
-                  </Tabs>
-                  
-                  <Box className="tab-content">
-                    {currentTab === 0 && (
-                      <Box>
-                        <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-                          Tổng quan khóa học
-                        </Typography>
-                        
-                        <Typography variant="body1" paragraph>
-                          {courseDetail.description}
-                        </Typography>
-                        
-                        <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold', mt: 3 }}>
-                          Giảng viên
-                        </Typography>
-                        
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                          <Avatar
-                            src="https://via.placeholder.com/100"
-                            alt={courseDetail.instructor}
-                            sx={{ width: 64, height: 64, mr: 2 }}
-                            className="instructor-avatar"
-                          />
-                          
-                          <Box>
-                            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                              {courseDetail.instructor}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              Giảng viên Lập trình Web
-                            </Typography>
-                          </Box>
-                        </Box>
-                        
-                        <Typography variant="body1" paragraph>
-                          Giảng viên có nhiều năm kinh nghiệm trong lĩnh vực phát triển web và đào tạo lập trình.
-                        </Typography>
-                      </Box>
-                    )}
-                    
-                    {currentTab === 1 && (
-                      <Box>
-                        <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-                          Nội dung khóa học
-                        </Typography>
-                        
-                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                          {totalLessons} bài học • {completedLessons} hoàn thành
-                        </Typography>
-                        
-                        {chapters.map((chapter) => (
-                          <Accordion
-                            key={chapter.id}
-                            expanded={expandedChapter === chapter.id}
-                            onChange={() => handleChapterClick(chapter.id)}
-                            sx={{ mb: 2 }}
-                          >
-                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                              <Box sx={{ width: '100%' }}>
-                                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                                  {chapter.title}
-                                </Typography>
-                                
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <Typography variant="body2" color="text.secondary">
-                                    {chapter.lessonsCount} bài học
-                                  </Typography>
-                                  
-                                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                    <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
-                                      {chapter.completedLessons || 0}/{chapter.lessonsCount}
-                                    </Typography>
-                                    
-                                    <div className="progress-indicator" style={{ width: '60px' }}>
-                                      <div
-                                        className="progress-bar"
-                                        style={{
-                                          width: `${chapter.lessonsCount > 0 
-                                            ? ((chapter.completedLessons || 0) / chapter.lessonsCount) * 100 
-                                            : 0}%`
-                                        }}
-                                      />
-                                    </div>
-                                  </Box>
-                                </Box>
-                              </Box>
-                            </AccordionSummary>
-                            
-                            <AccordionDetails sx={{ p: 0 }}>
-                              <List disablePadding>
-                                {/* Mock lessons since we don't have actual lesson data */}
-                                {Array.from({ length: chapter.lessonsCount }, (_, i) => ({
-                                  id: `${chapter.id}-${i+1}`,
-                                  title: `Bài ${i+1}: ${i % 2 === 0 ? 'Video' : 'Quiz'} - ${chapter.title}`,
-                                  type: i % 2 === 0 ? 'VIDEO' : 'QUIZ',
-                                  completed: i < (chapter.completedLessons || 0)
-                                })).map((lesson) => (
-                                  <ListItem
-                                    key={lesson.id}
-                                    className={`lesson-item ${lesson.completed ? 'completed' : ''}`}
-                                    onClick={() => handleLessonClick(chapter.id, lesson)}
-                                    sx={{ cursor: 'pointer' }}
-                                  >
-                                    <ListItemIcon>
-                                      {lesson.type === 'VIDEO' ? (
-                                        <PlayCircleIcon color="primary" />
-                                      ) : (
-                                        <QuizIcon color="secondary" />
-                                      )}
-                                    </ListItemIcon>
-                                    
-                                    <ListItemText
-                                      primary={lesson.title}
-                                      secondary={lesson.type === 'VIDEO' ? 'Video bài giảng' : 'Bài kiểm tra'}
-                                    />
-                                    
-                                    {lesson.completed && (
-                                      <CheckCircleIcon color="success" sx={{ ml: 1 }} />
-                                    )}
-                                  </ListItem>
-                                ))}
-                              </List>
-                            </AccordionDetails>
-                          </Accordion>
-                        ))}
-                      </Box>
-                    )}
-                    
-                    {currentTab === 2 && (
-                      <Box>
-                        <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-                          Đánh giá từ học viên
-                        </Typography>
-                        
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                          <Box sx={{ mr: 3, textAlign: 'center' }}>
-                            <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-                              {courseDetail.rating || 4.8}
-                            </Typography>
-                            <Rating value={courseDetail.rating || 4.8} precision={0.5} readOnly />
-                            <Typography variant="body2" color="text.secondary">
-                              ({courseDetail.reviewsCount || 24} đánh giá)
-                            </Typography>
-                          </Box>
-                          
-                          <Box sx={{ flexGrow: 1 }}>
-                            {/* Rating bars - Mock data */}
-                            {[5, 4, 3, 2, 1].map((star) => (
-                              <Box key={star} sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                                <Typography variant="body2" sx={{ minWidth: '20px', mr: 1 }}>
-                                  {star}
-                                </Typography>
-                                <Box 
-                                  sx={{ 
-                                    height: 8, 
-                                    bgcolor: 'grey.300', 
-                                    borderRadius: 4, 
-                                    width: '100%',
-                                    position: 'relative',
-                                    overflow: 'hidden'
-                                  }}
-                                >
-                                  <Box
-                                    sx={{
-                                      position: 'absolute',
-                                      top: 0,
-                                      left: 0,
-                                      height: '100%',
-                                      borderRadius: 4,
-                                      bgcolor: 'primary.main',
-                                      width: `${star === 5 ? 70 : star === 4 ? 20 : star === 3 ? 5 : star === 2 ? 3 : 2}%`
-                                    }}
-                                  />
-                                </Box>
-                                <Typography variant="body2" sx={{ ml: 1, minWidth: '30px' }}>
-                                  {star === 5 ? 70 : star === 4 ? 20 : star === 3 ? 5 : star === 2 ? 3 : 2}%
-                                </Typography>
-                              </Box>
-                            ))}
-                          </Box>
-                        </Box>
-                        
-                        <Divider sx={{ mb: 3 }} />
-                        
-                        {/* Mock reviews */}
-                        {[
-                          { name: 'Nguyễn Văn A', avatar: 'https://via.placeholder.com/100', rating: 5, comment: 'Khóa học rất hay và bổ ích. Tôi đã học được rất nhiều kiến thức mới.' },
-                          { name: 'Trần Thị B', avatar: 'https://via.placeholder.com/100?text=B', rating: 4, comment: 'Giảng viên trình bày dễ hiểu. Tuy nhiên có một số bài tập còn khó.' },
-                          { name: 'Lê Văn C', avatar: 'https://via.placeholder.com/100?text=C', rating: 5, comment: 'Tuyệt vời! Tôi đã áp dụng được những kiến thức học được vào công việc.' }
-                        ].map((review, index) => (
-                          <Card key={index} className="review-card" sx={{ mb: 2, p: 2 }}>
-                            <Box sx={{ display: 'flex', mb: 1 }}>
-                              <Avatar src={review.avatar} alt={review.name} sx={{ mr: 2 }} />
-                              <Box>
-                                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                                  {review.name}
-                                </Typography>
-                                <Rating value={review.rating} size="small" readOnly />
-                              </Box>
-                            </Box>
-                            <Typography variant="body2">
-                              {review.comment}
-                            </Typography>
-                          </Card>
-                        ))}
-                      </Box>
-                    )}
-                  </Box>
-                </Box>
-              </motion.div>
-            </Box>
+            <CourseOverview 
+              courseDetail={courseDetail}
+              chapters={chapters}
+              lessons={lessons}
+              currentTab={currentTab}
+              expandedChapter={expandedChapter}
+              progress={progress}
+              totalLessons={totalLessons}
+              completedLessons={completedLessons}
+              handleTabChange={handleTabChange}
+              handleChapterClick={handleChapterClick}
+              handleLessonClick={handleLessonClick}
+              handleShareClick={handleShareClick}
+              isEnrolled={isEnrolled}
+              onEnroll={handleEnrollCourse}
+            />
           )}
         </Grid>
         
-        {/* Sidebar */}
-        <Grid item xs={12} md={4}>
-          <Card className="course-info-card" sx={{ position: 'sticky', top: 100 }}>
-            <CardContent sx={{ p: 3 }}>
-              {isEnrolled ? (
-                <Box>
-                  <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-                    Tiến độ của bạn
-                  </Typography>
-                  
-                  <Box sx={{ mb: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="body2">
-                        Hoàn thành: {completedLessons}/{totalLessons} bài học
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                        {progress}%
-                      </Typography>
-                    </Box>
-                    
-                    <div className="progress-indicator">
-                      <div
-                        className="progress-bar"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                  </Box>
-                  
-                  <Button
-                    variant="contained"
-                    fullWidth
-                    size="large"
-                    startIcon={<PlayArrowIcon />}
-                    onClick={() => {
-                      // Find first incomplete lesson
-                      for (const chapter of chapters) {
-                        if ((chapter.completedLessons || 0) < chapter.lessonsCount) {
-                          handleChapterClick(chapter.id);
-                          
-                          // Mock finding the first incomplete lesson
-                          const incompleteLesson = {
-                            id: `${chapter.id}-${chapter.completedLessons + 1}`,
-                            title: `Bài ${chapter.completedLessons + 1}: ${chapter.title}`,
-                            type: 'VIDEO',
-                            completed: false
-                          };
-                          
-                          handleLessonClick(chapter.id, incompleteLesson);
-                          break;
-                        }
-                      }
-                    }}
-                    className="continue-button"
-                    sx={{ mb: 2 }}
-                  >
-                    Tiếp tục học
-                  </Button>
-                </Box>
-              ) : (
-                <Box>
-                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 'bold' }}>
-                    Đăng ký khóa học
-                  </Typography>
-                  
-                  <Typography variant="body1" paragraph>
-                    <TrophyIcon sx={{ color: 'warning.main', verticalAlign: 'middle', mr: 1 }} />
-                    Truy cập toàn bộ {totalLessons} bài học
-                  </Typography>
-                  
-                  <Typography variant="body1" paragraph>
-                    <CheckCircleIcon sx={{ color: 'success.main', verticalAlign: 'middle', mr: 1 }} />
-                    Học bất kỳ đâu, bất kỳ lúc nào
-                  </Typography>
-                  
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    size="large"
-                    fullWidth
-                    onClick={handleEnrollCourse}
-                    className="enroll-button"
-                    sx={{ mb: 2 }}
-                  >
-                    Đăng ký ngay
-                  </Button>
-                </Box>
-              )}
-              
-              <Divider sx={{ my: 2 }} />
-              
-              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                <Button
-                  startIcon={favorited ? <FavoriteIcon color="error" /> : <FavoriteBorderIcon />}
-                  onClick={toggleFavorite}
-                >
-                  {favorited ? 'Đã yêu thích' : 'Yêu thích'}
-                </Button>
-                
-                <Button
-                  startIcon={<ShareIcon />}
-                  onClick={handleShareClick}
-                >
-                  Chia sẻ
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+        {/* Right Sidebar - only show for non-enrolled users when not viewing a lesson */}
+        {!isEnrolled && !currentLesson && (
+          <Grid item xs={12} md={4}>
+            {renderEnrollmentCard()}
+          </Grid>
+        )}
       </Grid>
       
       {/* Share Dialog */}

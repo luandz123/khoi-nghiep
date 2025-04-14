@@ -29,6 +29,7 @@ public class Lesson {
     @Enumerated(EnumType.STRING)
     private LessonType type; // VIDEO, QUIZ
     
+    @Column(nullable = false, columnDefinition = "VARCHAR(255) DEFAULT ''")
     private String videoUrl;
     
     @Column(name = "order_index")

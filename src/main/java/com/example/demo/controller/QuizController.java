@@ -7,6 +7,8 @@ import com.example.demo.entity.Question;
 import com.example.demo.entity.User;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.service.QuizService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,10 +26,12 @@ public class QuizController {
     
     private final QuizService quizService;
     private final UserRepository userRepository;
+    private final ObjectMapper objectMapper;
     
-    public QuizController(QuizService quizService, UserRepository userRepository) {
+    public QuizController(QuizService quizService, UserRepository userRepository, ObjectMapper objectMapper) {
         this.quizService = quizService;
         this.userRepository = userRepository;
+        this.objectMapper = objectMapper;
     }
     
     // Lấy câu hỏi quiz theo bài học - cần xác thực
@@ -46,8 +50,10 @@ public class QuizController {
         question.setQuestionText((String) requestBody.get("questionText"));
         question.setCorrectAnswer((String) requestBody.get("correctAnswer"));
         
-        @SuppressWarnings("unchecked")
-        List<QuestionDTO.OptionDTO> options = (List<QuestionDTO.OptionDTO>) requestBody.get("options");
+        List<QuestionDTO.OptionDTO> options = objectMapper.convertValue(
+            requestBody.get("options"),
+            new TypeReference<List<QuestionDTO.OptionDTO>>() {}
+        );
         
         QuestionDTO createdQuestion = quizService.createQuestion(lessonId, question, options);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdQuestion);
@@ -62,8 +68,10 @@ public class QuizController {
         question.setQuestionText((String) requestBody.get("questionText"));
         question.setCorrectAnswer((String) requestBody.get("correctAnswer"));
         
-        @SuppressWarnings("unchecked")
-        List<QuestionDTO.OptionDTO> options = (List<QuestionDTO.OptionDTO>) requestBody.get("options");
+        List<QuestionDTO.OptionDTO> options = objectMapper.convertValue(
+            requestBody.get("options"),
+            new TypeReference<List<QuestionDTO.OptionDTO>>() {}
+        );
         
         QuestionDTO updatedQuestion = quizService.updateQuestion(questionId, question, options);
         return ResponseEntity.ok(updatedQuestion);

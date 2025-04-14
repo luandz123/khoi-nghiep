@@ -39,7 +39,6 @@ import AdminAddCoursePage from './components/admin/AdminAddCoursePage';
 import AdminCourseManagementPage from './components/admin/AdminCourseManagementPage';
 import AdminChapterList from './components/admin/AdminChapterList';
 import AdminLessonList from './components/admin/AdminLessonList';
-import AdminQuizManagement from './components/admin/AdminQuizManagement';
 import AdminProductList from './components/admin/AdminProductList';
 import AdminOrderList from './components/admin/AdminOrderList';
 import AdminCategoryPage from './components/admin/AdminCategoryPage';
@@ -71,7 +70,6 @@ function App() {
             <Route path="manage-courses" element={<AdminCourseManagementPage />} />
             <Route path="chapters/:courseId" element={<AdminChapterList />} />
             <Route path="lessons/:chapterId" element={<AdminLessonList />} />
-            <Route path="quizzes" element={<AdminQuizManagement />} />
             
             {/* Quản lý danh mục */}
             <Route path="categories" element={<AdminCategoryPage />} />
