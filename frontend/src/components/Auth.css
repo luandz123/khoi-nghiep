@@ -1,0 +1,80 @@
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem 1rem;
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+}
+
+.auth-paper {
+  padding: 2.5rem;
+  border-radius: 12px !important;
+  width: 100%;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12) !important;
+}
+
+.auth-title {
+  font-weight: 700 !important;
+  margin-bottom: 0.5rem !important;
+  text-align: center;
+}
+
+.social-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.google-btn {
+  border-color: #DB4437 !important;
+  color: #DB4437 !important;
+}
+.google-btn:hover {
+  background-color: rgba(219, 68, 55, 0.04) !important;
+}
+
+.facebook-btn {
+  border-color: #4267B2 !important;
+  color: #4267B2 !important;
+}
+.facebook-btn:hover {
+  background-color: rgba(66, 103, 178, 0.04) !important;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.auth-submit {
+  margin-top: 1.5rem !important;
+  padding: 0.75rem !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  font-size: 1rem !important;
+}
+
+.auth-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .auth-paper {
+    padding: 1.5rem;
+  }
+  
+  .auth-title {
+    font-size: 1.75rem !important;
+  }
+}

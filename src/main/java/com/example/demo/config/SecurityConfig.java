@@ -30,14 +30,32 @@ public class SecurityConfig {
     // Các endpoint công khai
     private static final String[] PUBLIC_ENDPOINTS = {
             "/api/auth/**",
-            "/api/categories/**"
+            "/api/categories/**",
+            "/api/featured-courses",
+            "/api/new-courses"
+    };
+
+    // Các endpoint khóa học công khai (không yêu cầu xác thực)
+    private static final String[] PUBLIC_COURSE_ENDPOINTS = {
+            "/api/courses",
+            "/api/courses/by-category/**",
+            "/api/courses/featured"
+    };
+
+    // Các endpoint khóa học có ID (pattern /api/courses/{id}) mà không cần xác thực
+    private static final String[] PUBLIC_COURSE_ID_ENDPOINTS = {
+            "/api/courses/{id:\\d+}"  // Chỉ cho phép con số làm ID
     };
 
     // Các endpoint yêu cầu xác thực
     private static final String[] AUTHENTICATED_ENDPOINTS = {
             "/api/orders/**",
             "/api/users/profile",
-            "/api/courses/enroll/**"
+            "/api/courses/enroll/**",
+            "/api/courses/my-courses", // Sửa lỗi thiếu dấu / ở đầu
+            "/api/courses/{courseId:\\d+}/progress",
+            "/api/courses/{courseId:\\d+}/reset-progress",
+            "/api/courses/enrollment-status/**"
     };
 
     @Bean
@@ -53,11 +71,20 @@ public class SecurityConfig {
                 // Public endpoints không cần xác thực
                 .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                 
-                // Các endpoints GET cho courses
-                .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/courses/enroll/**").authenticated()
+                // Các endpoints GET course công khai
+                .requestMatchers(HttpMethod.GET, PUBLIC_COURSE_ENDPOINTS).permitAll()
+                .requestMatchers(HttpMethod.GET, PUBLIC_COURSE_ID_ENDPOINTS).permitAll()
                 
-                // Các endpoints GET cho chapters
+                // Các endpoints yêu cầu xác thực (ưu tiên cao hơn quy tắc sau)
+                .requestMatchers(HttpMethod.GET, "/api/courses/my-courses").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/courses/{courseId:\\d+}/progress").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/courses/{courseId:\\d+}/reset-progress").authenticated()
+                .requestMatchers(HttpMethod.POST, "/api/courses/enroll/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/courses/enrollment-status/**").authenticated()
+                
+                // Các endpoints GET khác của courses
+                // LƯU Ý: Quy tắc này phải đặt sau các quy tắc cho my-courses, progress, v.v. ở trên
+                // để không ghi đè các quy tắc đó
                 .requestMatchers(HttpMethod.GET, "/api/chapters/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/chapters/**").hasAuthority("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/chapters/**").hasAuthority("ADMIN")
@@ -79,7 +106,7 @@ public class SecurityConfig {
                 // Endpoints admin
                 .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
                 
-                // Các endpoints yêu cầu đăng nhập
+                // Các endpoints yêu cầu đăng nhập khác
                 .requestMatchers(AUTHENTICATED_ENDPOINTS).authenticated()
                 
                 // Tất cả endpoints khác yêu cầu xác thực

@@ -31,6 +31,11 @@ public class CourseController {
         this.progressService = progressService;
     }
     
+    //     @GetMapping("/new")
+    // public ResponseEntity<List<CourseDTO>> getNewCourses(@RequestParam(defaultValue = "3") int limit) {
+    //     return ResponseEntity.ok(courseService.getNewCourses(limit));
+    // }
+    
     @GetMapping
     public ResponseEntity<List<CourseDTO>> getCourses(
             @RequestParam(required = false) String search,
@@ -49,10 +54,10 @@ public class CourseController {
         return ResponseEntity.ok(courseService.getCoursesByCategory(categoryId));
     }
     
-    @GetMapping("/featured")
-    public ResponseEntity<List<CourseDTO>> getFeaturedCourses() {
-        return ResponseEntity.ok(courseService.getFeaturedCourses());
-    }
+    // @GetMapping("/featured")
+    // public ResponseEntity<List<CourseDTO>> getFeaturedCourses() {
+    //     return ResponseEntity.ok(courseService.getFeaturedCourses());
+    // }
     
     @GetMapping("/my-courses")
     public ResponseEntity<List<CourseDTO>> getMyCourses(Principal principal) {

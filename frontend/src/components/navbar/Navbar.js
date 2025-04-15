@@ -173,11 +173,11 @@ const Navbar = () => {
                     Khóa học của tôi
                   </Link>
                 )}
-                <Link to="/courses/featured" className="dropdown-item">
+                <Link to="/featured-courses" className="dropdown-item">
                   <FaBook className="dropdown-icon" />
                   Khóa học nổi bật
                 </Link>
-                <Link to="/courses/new" className="dropdown-item">
+                <Link to="/new-courses" className="dropdown-item">
                   <FaBook className="dropdown-icon" />
                   Khóa học mới
                 </Link>

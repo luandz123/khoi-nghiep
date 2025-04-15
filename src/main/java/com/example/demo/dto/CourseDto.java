@@ -32,4 +32,5 @@ public class CourseDTO {
     private Integer completedLessons;
     private LocalDateTime updatedAt;
     private LocalDateTime createdAt;
+    private Long categoryId; 
 }

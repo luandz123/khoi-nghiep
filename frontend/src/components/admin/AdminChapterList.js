@@ -21,7 +21,12 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Divider
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Tooltip,
+  Fab
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -29,7 +34,8 @@ import {
   Delete as DeleteIcon,
   MenuBook as MenuBookIcon,
   DragHandle as DragHandleIcon,
-  School as SchoolIcon
+  School as SchoolIcon,
+  Save as SaveIcon
 } from '@mui/icons-material';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import axiosInstance from '../../utils/axiosConfig';
@@ -47,6 +53,9 @@ const AdminChapterList = ({ initialCourseId }) => {
   const [newChapterDescription, setNewChapterDescription] = useState('');
   const [reorderMode, setReorderMode] = useState(false);
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [reorderedChapters, setReorderedChapters] = useState([]);
   const navigate = useNavigate();
 
   // Fetch all courses when component mounts
@@ -93,7 +102,10 @@ const AdminChapterList = ({ initialCourseId }) => {
     setLoading(true);
     try {
       const response = await axiosInstance.get(`/chapters/course/${courseId}`);
-      setChapters(response.data);
+      // Ensure chapters are sorted by order
+      const sortedChapters = response.data.sort((a, b) => a.order - b.order);
+      setChapters(sortedChapters);
+      setReorderedChapters(sortedChapters);
     } catch (error) {
       console.error('Error fetching chapters:', error);
       setNotification({
@@ -102,6 +114,7 @@ const AdminChapterList = ({ initialCourseId }) => {
         severity: 'error'
       });
       setChapters([]);
+      setReorderedChapters([]);
     } finally {
       setLoading(false);
     }
@@ -126,6 +139,26 @@ const AdminChapterList = ({ initialCourseId }) => {
     setNewChapterTitle('');
     setNewChapterDescription('');
     setReorderMode(false);
+  };
+
+  const handleOpenDialog = (chapter = null) => {
+    if (chapter) {
+      setEditingChapter(chapter);
+      setNewChapterTitle(chapter.title);
+      setNewChapterDescription(chapter.description || '');
+    } else {
+      setEditingChapter(null);
+      setNewChapterTitle('');
+      setNewChapterDescription('');
+    }
+    setDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setDialogOpen(false);
+    setEditingChapter(null);
+    setNewChapterTitle('');
+    setNewChapterDescription('');
   };
 
   const handleCreateChapter = async () => {
@@ -156,6 +189,7 @@ const AdminChapterList = ({ initialCourseId }) => {
 
       const response = await axiosInstance.post('/chapters', chapterPayload);
       setChapters([...chapters, response.data]);
+      setReorderedChapters([...reorderedChapters, response.data]);
       
       setNotification({
         open: true,
@@ -163,9 +197,8 @@ const AdminChapterList = ({ initialCourseId }) => {
         severity: 'success'
       });
       
-      // Reset form
-      setNewChapterTitle('');
-      setNewChapterDescription('');
+      // Close dialog and reset form
+      handleCloseDialog();
     } catch (error) {
       console.error('Error creating chapter:', error);
       setNotification({
@@ -196,9 +229,11 @@ const AdminChapterList = ({ initialCourseId }) => {
       const response = await axiosInstance.put(`/chapters/${editingChapter.id}`, chapterPayload);
       
       // Update chapters list
-      setChapters(chapters.map(chapter => 
+      const updatedChapters = chapters.map(chapter => 
         chapter.id === editingChapter.id ? response.data : chapter
-      ));
+      );
+      setChapters(updatedChapters);
+      setReorderedChapters(updatedChapters);
       
       setNotification({
         open: true,
@@ -206,10 +241,8 @@ const AdminChapterList = ({ initialCourseId }) => {
         severity: 'success'
       });
       
-      // Reset form
-      setEditingChapter(null);
-      setNewChapterTitle('');
-      setNewChapterDescription('');
+      // Close dialog and reset form
+      handleCloseDialog();
     } catch (error) {
       console.error('Error updating chapter:', error);
       setNotification({
@@ -228,8 +261,10 @@ const AdminChapterList = ({ initialCourseId }) => {
     try {
       await axiosInstance.delete(`/chapters/${chapterId}`);
       
-      // Remove chapter from list
-      setChapters(chapters.filter(chapter => chapter.id !== chapterId));
+      // Remove chapter from lists
+      const updatedChapters = chapters.filter(chapter => chapter.id !== chapterId);
+      setChapters(updatedChapters);
+      setReorderedChapters(updatedChapters);
       
       setNotification({
         open: true,
@@ -246,18 +281,6 @@ const AdminChapterList = ({ initialCourseId }) => {
     }
   };
 
-  const handleStartEditing = (chapter) => {
-    setEditingChapter(chapter);
-    setNewChapterTitle(chapter.title);
-    setNewChapterDescription(chapter.description || '');
-  };
-
-  const handleCancelEditing = () => {
-    setEditingChapter(null);
-    setNewChapterTitle('');
-    setNewChapterDescription('');
-  };
-
   const handleDragEnd = async (result) => {
     if (!result.destination) {
       return;
@@ -270,13 +293,25 @@ const AdminChapterList = ({ initialCourseId }) => {
       return;
     }
 
-    const reorderedChapters = Array.from(chapters);
-    const [removed] = reorderedChapters.splice(startIndex, 1);
-    reorderedChapters.splice(endIndex, 0, removed);
+    const items = Array.from(reorderedChapters);
+    const [removed] = items.splice(startIndex, 1);
+    items.splice(endIndex, 0, removed);
 
-    setChapters(reorderedChapters);
+    // Update the order property for each chapter
+    const updatedItems = items.map((chapter, index) => ({
+      ...chapter,
+      order: index + 1
+    }));
 
+    setReorderedChapters(updatedItems);
+  };
+
+  const saveReorderedChapters = async () => {
+    setSavingOrder(true);
     try {
+      // Update the chapters list in the UI immediately
+      setChapters(reorderedChapters);
+      
       // Get chapter IDs in new order
       const chapterIds = reorderedChapters.map(chapter => chapter.id);
       
@@ -288,6 +323,9 @@ const AdminChapterList = ({ initialCourseId }) => {
         message: 'Sắp xếp lại chương thành công!',
         severity: 'success'
       });
+      
+      // Exit reorder mode
+      setReorderMode(false);
     } catch (error) {
       console.error('Error reordering chapters:', error);
       
@@ -299,11 +337,19 @@ const AdminChapterList = ({ initialCourseId }) => {
         message: `Lỗi khi sắp xếp lại chương: ${error.response?.data?.message || error.message}`,
         severity: 'error'
       });
+    } finally {
+      setSavingOrder(false);
     }
   };
 
   const toggleReorderMode = () => {
-    setReorderMode(!reorderMode);
+    const newMode = !reorderMode;
+    setReorderMode(newMode);
+    
+    // Reset reordered chapters to match current chapters when entering reorder mode
+    if (newMode) {
+      setReorderedChapters([...chapters]);
+    }
   };
 
   const handleManageLessons = (chapterId) => {
@@ -332,195 +378,189 @@ const AdminChapterList = ({ initialCourseId }) => {
       </Typography>
 
       {/* Course selection */}
-      <Paper sx={{ p: 3, mb: 4 }}>
-        <Typography variant="h6" sx={{ mb: 2 }}>
-          Chọn khóa học
-        </Typography>
-        <FormControl fullWidth>
-          <InputLabel id="course-select-label">Khóa học</InputLabel>
-          <Select
-            labelId="course-select-label"
-            value={selectedCourseId}
-            onChange={handleCourseChange}
-            label="Khóa học"
-          >
-            <MenuItem value="">
-              <em>-- Chọn khóa học --</em>
+        <Paper sx={{ p: 3, mb: 4 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            Chọn khóa học
+          </Typography>
+          <FormControl fullWidth>
+            <InputLabel id="course-select-label">Khóa học</InputLabel>
+            <Select
+          labelId="course-select-label"
+          value={selectedCourseId}
+          onChange={handleCourseChange}
+          label="Khóa học"
+            >
+          <MenuItem value="">
+            <em>-- Chọn khóa học --</em>
+          </MenuItem>
+          {courses.map((course) => (
+            <MenuItem key={course.id} value={course.id}>
+              {course.title}
             </MenuItem>
-            {courses.map((course) => (
-              <MenuItem key={course.id} value={course.id}>
-                {course.title}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Paper>
+          ))}
+            </Select>
+          </FormControl>
+        </Paper>
 
-      {selectedCourseId && (
-        <>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <SchoolIcon sx={{ mr: 1, color: 'primary.main' }} />
-              <Typography variant="h5" component="h2">
-                {selectedCourseName}
-              </Typography>
-            </Box>
+        {selectedCourseId && (
+          <>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <SchoolIcon sx={{ mr: 1, color: 'primary.main' }} />
+            <Typography variant="h5" component="h2">
+              {selectedCourseName}
+            </Typography>
+          </Box>
+          <Box>
+            {reorderMode && (
+              <Button
+            variant="contained"
+            color="primary"
+            onClick={saveReorderedChapters}
+            disabled={savingOrder}
+            startIcon={<SaveIcon />}
+            sx={{ mr: 2 }}
+              >
+            {savingOrder ? 'Đang lưu...' : 'Lưu thứ tự'}
+              </Button>
+            )}
             {chapters.length > 0 && (
               <Button 
-                variant="outlined" 
-                color={reorderMode ? "secondary" : "primary"}
-                onClick={toggleReorderMode}
+            variant="outlined" 
+            color={reorderMode ? "secondary" : "primary"}
+            onClick={toggleReorderMode}
               >
-                {reorderMode ? "Thoát sắp xếp" : "Sắp xếp lại chương"}
+            {reorderMode ? "Thoát sắp xếp" : "Sắp xếp lại chương"}
               </Button>
             )}
           </Box>
-
-          <Paper sx={{ p: 3, mb: 4 }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              {editingChapter ? 'Chỉnh sửa chương' : 'Thêm chương mới'}
-            </Typography>
-            <TextField
-              fullWidth
-              label="Tiêu đề chương"
-              value={newChapterTitle}
-              onChange={(e) => setNewChapterTitle(e.target.value)}
-              margin="normal"
-              required
-              placeholder="Ví dụ: Chương 1: Giới thiệu"
-            />
-            <TextField
-              fullWidth
-              label="Mô tả chương"
-              value={newChapterDescription}
-              onChange={(e) => setNewChapterDescription(e.target.value)}
-              margin="normal"
-              multiline
-              rows={3}
-              placeholder="Mô tả nội dung chính của chương này"
-            />
-            <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-              {editingChapter && (
-                <Button 
-                  variant="outlined" 
-                  onClick={handleCancelEditing}
-                  sx={{ mr: 1 }}
-                >
-                  Hủy
-                </Button>
-              )}
-              <Button 
-                variant="contained" 
-                color="primary" 
-                startIcon={editingChapter ? <EditIcon /> : <AddIcon />}
-                onClick={editingChapter ? handleUpdateChapter : handleCreateChapter}
-              >
-                {editingChapter ? 'Cập nhật chương' : 'Thêm chương mới'}
-              </Button>
             </Box>
-          </Paper>
 
-          <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h6">
-              Danh sách chương ({chapters.length})
-            </Typography>
-            {loading && <CircularProgress size={24} />}
-          </Box>
+            <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h6">
+            Danh sách chương ({chapters.length})
+          </Typography>
+          {loading && <CircularProgress size={24} />}
+            </Box>
 
-          {!loading && chapters.length === 0 ? (
+            <DragDropContext onDragEnd={handleDragEnd}>
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : chapters.length === 0 ? (
             <Card>
               <CardContent sx={{ textAlign: 'center', py: 4 }}>
-                <Typography color="text.secondary">
-                  Chưa có chương nào cho khóa học này. Hãy thêm chương mới ở trên.
-                </Typography>
+            <Typography color="text.secondary">
+              Chưa có chương nào cho khóa học này. Hãy thêm chương mới.
+            </Typography>
               </CardContent>
             </Card>
           ) : (
-            <DragDropContext onDragEnd={handleDragEnd}>
-              <Droppable droppableId="chapters" isDropDisabled={!reorderMode}>
-                {(provided) => (
-                  <List 
-                    sx={{ 
-                      bgcolor: 'background.paper',
-                      borderRadius: 1,
-                      boxShadow: 1
-                    }}
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                  >
-                    {chapters.map((chapter, index) => (
-                      <Draggable 
-                        key={chapter.id} 
-                        draggableId={chapter.id.toString()} 
-                        index={index}
-                        isDragDisabled={!reorderMode}
-                      >
-                        {(provided) => (
-                          <ListItem
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            sx={{ 
-                              borderBottom: index < chapters.length - 1 ? '1px solid rgba(0, 0, 0, 0.12)' : 'none',
-                              cursor: reorderMode ? 'move' : 'default',
-                              py: 2
-                            }}
-                          >
-                            {reorderMode && (
-                              <Box {...provided.dragHandleProps} sx={{ mr: 2 }}>
-                                <DragHandleIcon />
-                              </Box>
-                            )}
-                            <ListItemText
-                              primary={
-                                <Typography variant="subtitle1" component="div">
-                                  {chapter.order}. {chapter.title}
-                                </Typography>
-                              }
-                              secondary={
-                                <>
-                                  <Typography variant="body2" color="text.secondary" component="div">
-                                    {chapter.description || 'Không có mô tả'}
-                                  </Typography>
-                                  <Typography variant="body2" color="primary" component="div" sx={{ mt: 0.5 }}>
-                                    {chapter.lessonsCount} bài học • {chapter.completedLessons || 0} đã hoàn thành
-                                  </Typography>
-                                </>
-                              }
-                            />
-                            <ListItemSecondaryAction>
-                              <IconButton
-                                color="secondary"
-                                onClick={() => handleManageLessons(chapter.id)}
-                                title="Quản lý bài học"
-                                sx={{ mr: 1 }}
-                              >
-                                <MenuBookIcon />
-                              </IconButton>
-                              <IconButton 
-                                color="primary"
-                                onClick={() => handleStartEditing(chapter)}
-                                title="Chỉnh sửa chương"
-                                sx={{ mr: 1 }}
-                              >
-                                <EditIcon />
-                              </IconButton>
-                              <IconButton 
-                                color="error"
-                                onClick={() => handleDeleteChapter(chapter.id)}
-                                title="Xóa chương"
-                              >
-                                <DeleteIcon />
-                              </IconButton>
-                            </ListItemSecondaryAction>
-                          </ListItem>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </List>
-                )}
-              </Droppable>
+            <Droppable droppableId="chapters" isDropDisabled={!reorderMode}>
+              {(provided) => (
+            <List
+              sx={{
+                bgcolor: 'background.paper',
+                borderRadius: 1,
+                boxShadow: 1
+              }}
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+            >
+              {(reorderMode ? reorderedChapters : chapters).map((chapter, index) => (
+                <Draggable
+              key={chapter.id}
+              draggableId={chapter.id.toString()}
+              index={index}
+              isDragDisabled={!reorderMode}
+                >
+              {(providedDraggable) => (
+                <ListItem
+                  ref={providedDraggable.innerRef}
+                  {...providedDraggable.draggableProps}
+                  sx={{
+                borderBottom: index < chapters.length - 1 ? '1px solid rgba(0, 0, 0, 0.12)' : 'none',
+                cursor: reorderMode ? 'move' : 'default',
+                py: 2,
+                bgcolor: reorderMode ? 'rgba(0, 0, 0, 0.02)' : 'transparent',
+                  }}
+                >
+                  {reorderMode && (
+                <Box {...providedDraggable.dragHandleProps} sx={{ mr: 2, color: 'text.secondary' }}>
+                  <DragHandleIcon />
+                </Box>
+                  )}
+                  <ListItemText
+                primary={
+                  <Typography variant="subtitle1" component="div">
+                    {reorderMode ? `${index + 1}.` : `${chapter.order}.`} {chapter.title}
+                  </Typography>
+                }
+                secondary={
+                  <>
+                    <Typography variant="body2" color="text.secondary" component="div">
+                  {chapter.description || 'Không có mô tả'}
+                    </Typography>
+                    <Typography variant="body2" color="primary" component="div" sx={{ mt: 0.5 }}>
+                  {chapter.lessonsCount || 0} bài học • {chapter.completedLessons || 0} đã hoàn thành
+                    </Typography>
+                  </>
+                }
+                  />
+                  {!reorderMode && (
+                <ListItemSecondaryAction>
+                  <Tooltip title="Quản lý bài học">
+                    <IconButton
+                  color="secondary"
+                  onClick={() => handleManageLessons(chapter.id)}
+                  sx={{ mr: 1 }}
+                    >
+                  <MenuBookIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Chỉnh sửa chương">
+                    <IconButton 
+                  color="primary"
+                  onClick={() => handleOpenDialog(chapter)}
+                  sx={{ mr: 1 }}
+                    >
+                  <EditIcon />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Xóa chương">
+                    <IconButton 
+                  color="error"
+                  onClick={() => handleDeleteChapter(chapter.id)}
+                    >
+                  <DeleteIcon />
+                    </IconButton>
+                  </Tooltip>
+                </ListItemSecondaryAction>
+                  )}
+                </ListItem>
+              )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </List>
+              )}
+            </Droppable>
+          )}
             </DragDropContext>
+
+            {/* Floating Action Button for adding new chapter */}
+          {!reorderMode && (
+            <Tooltip title="Thêm chương mới">
+              <Fab
+                color="primary"
+                aria-label="add"
+                onClick={() => handleOpenDialog()}
+                sx={{ position: 'fixed', bottom: 20, right: 20 }}
+              >
+                <AddIcon />
+              </Fab>
+            </Tooltip>
           )}
         </>
       )}
@@ -533,6 +573,58 @@ const AdminChapterList = ({ initialCourseId }) => {
         </Box>
       )}
 
+      {/* Dialog for creating/editing chapters */}
+      <Dialog 
+        open={dialogOpen} 
+        onClose={handleCloseDialog}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>
+          {editingChapter ? 'Chỉnh sửa chương' : 'Thêm chương mới'}
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Tiêu đề chương"
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={newChapterTitle}
+            onChange={(e) => setNewChapterTitle(e.target.value)}
+            required
+            placeholder="Ví dụ: Chương 1: Giới thiệu"
+            sx={{ mb: 2, mt: 1 }}
+          />
+          <TextField
+            margin="dense"
+            label="Mô tả chương"
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={newChapterDescription}
+            onChange={(e) => setNewChapterDescription(e.target.value)}
+            multiline
+            rows={4}
+            placeholder="Mô tả nội dung chính của chương này"
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={handleCloseDialog} color="inherit">
+            Hủy
+          </Button>
+          <Button 
+            onClick={editingChapter ? handleUpdateChapter : handleCreateChapter}
+            variant="contained" 
+            color="primary"
+            startIcon={editingChapter ? <EditIcon /> : <AddIcon />}
+          >
+            {editingChapter ? 'Cập nhật' : 'Thêm mới'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Snackbar 
         open={notification.open} 
         autoHideDuration={6000} 
@@ -543,6 +635,7 @@ const AdminChapterList = ({ initialCourseId }) => {
           onClose={handleCloseNotification} 
           severity={notification.severity}
           variant="filled"
+          elevation={6}
         >
           {notification.message}
         </Alert>

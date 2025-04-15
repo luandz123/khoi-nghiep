@@ -151,7 +151,9 @@ const AdminLessonList = ({ initialChapterId }) => {
     setLoading(true);
     try {
       const response = await axiosInstance.get(`/lessons/chapter/${selectedChapterId}`);
-      setLessons(response.data);
+      // Ensure lessons are sorted by order
+      const sortedLessons = response.data.sort((a, b) => a.order - b.order);
+      setLessons(sortedLessons);
     } catch (error) {
       console.error('Error fetching lessons:', error);
       setNotification({
@@ -246,11 +248,11 @@ const AdminLessonList = ({ initialChapterId }) => {
         // Format questions to match the state structure
         const formattedQuestions = lesson.questions.map(q => {
           // Find the correct option index - Đảm bảo rằng correctAnswer là số dạng chuỗi
-          const correctOptionIndex = q.correctAnswer !== undefined ? 
+          const correctOptionIndex = q.correctAnswer !== undefined ?
             parseInt(q.correctAnswer, 10) : -1;
-          
+
           console.log('Loading question:', q.questionText, 'correctAnswer:', q.correctAnswer, 'as index:', correctOptionIndex);
-          
+
           // Format options to have isCorrect flag
           // Quan trọng: Đánh dấu đáp án đúng dựa vào index
           const options = Array.isArray(q.options) ? q.options.map((opt, idx) => {
@@ -266,7 +268,7 @@ const AdminLessonList = ({ initialChapterId }) => {
               isCorrect: idx === correctOptionIndex
             };
           }) : [];
-          
+
           return {
             id: q.id, // Keep the ID for updating existing questions
             questionText: q.questionText || '',
@@ -276,18 +278,18 @@ const AdminLessonList = ({ initialChapterId }) => {
             ]
           };
         });
-        
+
         setQuestions(formattedQuestions);
       } else {
-        setQuestions([{ 
-          questionText: '', 
-          options: [{ text: '', isCorrect: false }, { text: '', isCorrect: true }] 
+        setQuestions([{
+          questionText: '',
+          options: [{ text: '', isCorrect: false }, { text: '', isCorrect: true }]
         }]);
       }
     } else {
-      setQuestions([{ 
-        questionText: '', 
-        options: [{ text: '', isCorrect: false }, { text: '', isCorrect: true }] 
+      setQuestions([{
+        questionText: '',
+        options: [{ text: '', isCorrect: false }, { text: '', isCorrect: true }]
       }]);
     }
 
@@ -324,17 +326,17 @@ const AdminLessonList = ({ initialChapterId }) => {
         title: lessonTitle,
         type: lessonType
       };
-      
+
       if (lessonType === 'VIDEO') {
         payload.videoUrl = videoUrl;
       }
 
       let savedLesson;
-      
+
       if (formMode === 'add') {
         const response = await axiosInstance.post(`/lessons/chapter/${selectedChapterId}`, payload);
         savedLesson = response.data;
-        
+
         setNotification({
           open: true,
           message: 'Thêm bài học thành công!',
@@ -343,7 +345,7 @@ const AdminLessonList = ({ initialChapterId }) => {
       } else {
         const response = await axiosInstance.put(`/lessons/${currentLesson.id}`, payload);
         savedLesson = response.data;
-        
+
         setNotification({
           open: true,
           message: 'Cập nhật bài học thành công!',
@@ -355,31 +357,31 @@ const AdminLessonList = ({ initialChapterId }) => {
       if (lessonType === 'QUIZ') {
         const lessonId = savedLesson.id || currentLesson.id;
         let hasQuestionsError = false;
-        
+
         // Process each question
         for (const question of questions) {
           if (!question.questionText.trim()) continue;
-          
+
           // Find the correct option index
           const correctOptionIndex = question.options.findIndex(opt => opt.isCorrect);
           if (correctOptionIndex === -1) continue;
-          
+
           // Prepare options with clear ID based on index
           // Important: option ID MUST be the index as string
           const formattedOptions = question.options.map((opt, index) => ({
             id: index.toString(),  // Use index as ID (string)
             text: opt.text
           }));
-          
+
           try {
             const questionPayload = {
               questionText: question.questionText,
               correctAnswer: correctOptionIndex.toString(), // Save correct answer as index string
               options: formattedOptions
             };
-            
+
             console.log("Saving question with payload:", questionPayload);
-            
+
             if (question.id) {
               // Update existing question
               await axiosInstance.put(`/quizzes/questions/${question.id}`, questionPayload);
@@ -394,7 +396,7 @@ const AdminLessonList = ({ initialChapterId }) => {
             hasQuestionsError = true;
           }
         }
-        
+
         if (hasQuestionsError) {
           setNotification({
             open: true,
@@ -404,8 +406,8 @@ const AdminLessonList = ({ initialChapterId }) => {
         } else {
           setNotification({
             open: true,
-            message: formMode === 'add' ? 
-              'Thêm bài quiz và câu hỏi thành công!' : 
+            message: formMode === 'add' ?
+              'Thêm bài quiz và câu hỏi thành công!' :
               'Cập nhật bài quiz và câu hỏi thành công!',
             severity: 'success'
           });
@@ -453,10 +455,12 @@ const AdminLessonList = ({ initialChapterId }) => {
 
     if (startIndex === endIndex) return;
 
+    // Create a new array based on the current lessons state
     const reorderedLessons = Array.from(lessons);
     const [removed] = reorderedLessons.splice(startIndex, 1);
     reorderedLessons.splice(endIndex, 0, removed);
 
+    // Update the local state immediately for better UX
     setLessons(reorderedLessons);
 
     try {
@@ -467,6 +471,8 @@ const AdminLessonList = ({ initialChapterId }) => {
         message: 'Thứ tự bài học đã được cập nhật!',
         severity: 'success'
       });
+      // Fetch lessons again to get updated order numbers from backend
+      fetchLessons();
     } catch (error) {
       console.error('Error reordering lessons:', error);
       setNotification({
@@ -474,7 +480,8 @@ const AdminLessonList = ({ initialChapterId }) => {
         message: `Lỗi khi sắp xếp lại bài học: ${error.response?.data?.message || error.message}`,
         severity: 'error'
       });
-      fetchLessons(); // Tải lại thứ tự ban đầu
+      // Revert to original order on error by fetching again
+      fetchLessons();
     }
   };
 
@@ -497,9 +504,9 @@ const AdminLessonList = ({ initialChapterId }) => {
 
   // Quiz question handlers
   const handleAddQuestion = () => {
-    setQuestions([...questions, { 
-      questionText: '', 
-      options: [{ text: '', isCorrect: false }, { text: '', isCorrect: true }] 
+    setQuestions([...questions, {
+      questionText: '',
+      options: [{ text: '', isCorrect: false }, { text: '', isCorrect: true }]
     }]);
   };
 
@@ -538,7 +545,7 @@ const AdminLessonList = ({ initialChapterId }) => {
 
   const handleRemoveOption = (questionIndex, optionIndex) => {
     const newQuestions = [...questions];
-    
+
     // Ensure we have at least 2 options
     if (newQuestions[questionIndex].options.length <= 2) {
       setNotification({
@@ -548,18 +555,18 @@ const AdminLessonList = ({ initialChapterId }) => {
       });
       return;
     }
-    
+
     // Check if we're removing the correct option
     const isRemovingCorrectOption = newQuestions[questionIndex].options[optionIndex].isCorrect;
-    
+
     // Remove the option
     newQuestions[questionIndex].options.splice(optionIndex, 1);
-    
+
     // If we removed the correct option, set the first option as correct
-    if (isRemovingCorrectOption) {
+    if (isRemovingCorrectOption && newQuestions[questionIndex].options.length > 0) {
       newQuestions[questionIndex].options[0].isCorrect = true;
     }
-    
+
     setQuestions(newQuestions);
   };
 
@@ -704,38 +711,40 @@ const AdminLessonList = ({ initialChapterId }) => {
             </Tabs>
           </Box>
 
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-              <CircularProgress />
-              <Typography variant="body1" sx={{ ml: 2 }}>
-                Đang tải danh sách bài học...
-              </Typography>
-            </Box>
-          ) : lessons.length === 0 ? (
-            <Card>
-              <CardContent sx={{ textAlign: 'center', py: 4 }}>
-                <Typography color="text.secondary">
-                  Chưa có bài học nào trong chương này. Bấm "Thêm bài học" để bắt đầu.
+          {/* Move DragDropContext to wrap the conditional rendering */}
+          <DragDropContext onDragEnd={handleDragEnd}>
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                <CircularProgress />
+                <Typography variant="body1" sx={{ ml: 2 }}>
+                  Đang tải danh sách bài học...
                 </Typography>
-              </CardContent>
-            </Card>
-          ) : (
-            <DragDropContext onDragEnd={handleDragEnd}>
-              <Droppable droppableId="lessons" isDropDisabled={!reorderMode}>
-                {(provided) => (
-                  <TableContainer component={Paper} ref={provided.innerRef} {...provided.droppableProps}>
-                    <Table>
-                      <TableHead>
-                        <TableRow>
-                          {reorderMode && <TableCell width="50px"></TableCell>}
-                          <TableCell>STT</TableCell>
-                          <TableCell>Tiêu đề</TableCell>
-                          <TableCell>Loại</TableCell>
-                          <TableCell>Nội dung</TableCell>
-                          <TableCell align="right">Thao tác</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
+              </Box>
+            ) : lessons.length === 0 ? (
+              <Card>
+                <CardContent sx={{ textAlign: 'center', py: 4 }}>
+                  <Typography color="text.secondary">
+                    Chưa có bài học nào trong chương này. Bấm "Thêm bài học" để bắt đầu.
+                  </Typography>
+                </CardContent>
+              </Card>
+            ) : (
+              <TableContainer component={Paper}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      {reorderMode && <TableCell width="50px"></TableCell>}
+                      <TableCell>STT</TableCell>
+                      <TableCell>Tiêu đề</TableCell>
+                      <TableCell>Loại</TableCell>
+                      <TableCell>Nội dung</TableCell>
+                      <TableCell align="right">Thao tác</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  {/* Apply Droppable props to TableBody */}
+                  <Droppable droppableId="lessons" isDropDisabled={!reorderMode}>
+                    {(providedDroppable) => (
+                      <TableBody ref={providedDroppable.innerRef} {...providedDroppable.droppableProps}>
                         {lessons
                           .filter(lesson => {
                             if (tabValue === 1) return lesson.type === 'VIDEO';
@@ -749,20 +758,23 @@ const AdminLessonList = ({ initialChapterId }) => {
                               index={index}
                               isDragDisabled={!reorderMode}
                             >
-                              {(provided) => (
+                              {/* Rename inner provided */}
+                              {(providedDraggable) => (
                                 <TableRow
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  sx={reorderMode ? { cursor: 'move' } : {}}
+                                  ref={providedDraggable.innerRef}
+                                  {...providedDraggable.draggableProps}
+                                  sx={reorderMode ? { cursor: 'move', backgroundColor: 'rgba(0, 0, 0, 0.02)' } : {}}
                                 >
                                   {reorderMode && (
                                     <TableCell width="50px">
-                                      <IconButton size="small" {...provided.dragHandleProps}>
+                                      {/* Use renamed providedDraggable */}
+                                      <IconButton size="small" {...providedDraggable.dragHandleProps}>
                                         <DragHandleIcon fontSize="small" />
                                       </IconButton>
                                     </TableCell>
                                   )}
-                                  <TableCell>{lesson.order}</TableCell>
+                                  {/* Display index + 1 in reorder mode for immediate feedback */}
+                                  <TableCell>{reorderMode ? index + 1 : lesson.order}</TableCell>
                                   <TableCell>{lesson.title}</TableCell>
                                   <TableCell>
                                     {lesson.type === 'VIDEO' ?
@@ -823,14 +835,14 @@ const AdminLessonList = ({ initialChapterId }) => {
                               )}
                             </Draggable>
                           ))}
-                        {provided.placeholder}
+                        {providedDroppable.placeholder}
                       </TableBody>
-                    </Table>
-                  </TableContainer>
-                )}
-              </Droppable>
-            </DragDropContext>
-          )}
+                    )}
+                  </Droppable>
+                </Table>
+              </TableContainer>
+            )}
+          </DragDropContext> {/* End DragDropContext */}
         </>
       ) : (
         <Box sx={{ textAlign: 'center', py: 6, bgcolor: 'background.paper', borderRadius: 1 }}>
@@ -872,9 +884,9 @@ const AdminLessonList = ({ initialChapterId }) => {
                 setLessonType(e.target.value);
                 // Reset questions when changing lesson type
                 if (e.target.value === 'QUIZ') {
-                  setQuestions([{ 
-                    questionText: '', 
-                    options: [{ text: '', isCorrect: false }, { text: '', isCorrect: true }] 
+                  setQuestions([{
+                    questionText: '',
+                    options: [{ text: '', isCorrect: false }, { text: '', isCorrect: true }]
                   }]);
                 }
               }}
@@ -927,7 +939,7 @@ const AdminLessonList = ({ initialChapterId }) => {
               </Typography>
 
               <Alert severity="info" sx={{ mb: 3 }}>
-                Lưu ý: Bạn có thể tạo cấu trúc cơ bản của quiz tại đây. 
+                Lưu ý: Bạn có thể tạo cấu trúc cơ bản của quiz tại đây.
                 Để quản lý chi tiết câu hỏi và đáp án, hãy sử dụng trang quản lý quiz riêng sau khi lưu bài học.
               </Alert>
 
@@ -939,17 +951,17 @@ const AdminLessonList = ({ initialChapterId }) => {
                 >
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                     <Typography variant="subtitle1">Câu hỏi {questionIndex + 1}</Typography>
-                    
-                    <IconButton 
-                      color="error" 
-                      onClick={() => handleRemoveQuestion(questionIndex)} 
+
+                    <IconButton
+                      color="error"
+                      onClick={() => handleRemoveQuestion(questionIndex)}
                       disabled={questions.length === 1}
                       size="small"
                     >
                       <DeleteIcon fontSize="small" />
                     </IconButton>
                   </Box>
-                  
+
                   <TextField
                     fullWidth
                     label="Nội dung câu hỏi"
@@ -959,18 +971,18 @@ const AdminLessonList = ({ initialChapterId }) => {
                     margin="normal"
                     required
                   />
-                  
+
                   <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
                     Các lựa chọn (chọn một đáp án đúng):
                   </Typography>
-                  
+
                   {question.options.map((option, optionIndex) => (
                     <Box
                       key={optionIndex}
-                      sx={{ 
+                      sx={{
                         display: 'flex',
-                        alignItems: 'center', 
-                        mb: 1.5 
+                        alignItems: 'center',
+                        mb: 1.5
                       }}
                     >
                       <FormControlLabel
@@ -1003,8 +1015,8 @@ const AdminLessonList = ({ initialChapterId }) => {
                       </IconButton>
                     </Box>
                   ))}
-                  
-                  <Button 
+
+                  <Button
                     startIcon={<AddIcon />}
                     onClick={() => handleAddOption(questionIndex)}
                     size="small"
@@ -1015,8 +1027,8 @@ const AdminLessonList = ({ initialChapterId }) => {
                   </Button>
                 </Paper>
               ))}
-              
-              <Button 
+
+              <Button
                 variant="outlined"
                 startIcon={<AddIcon />}
                 onClick={handleAddQuestion}

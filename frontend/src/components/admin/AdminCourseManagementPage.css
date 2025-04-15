@@ -1,59 +1,45 @@
 .admin-course-management-page {
-  background: #ffffff;
-  padding: 20px;
-  max-width: 1000px;
-  margin: 0 auto;
+  min-height: 80vh;
 }
 
-h1 {
-  margin-bottom: 20px;
+.course-table-container {
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
 }
 
-.course-table {
-  width: 100%;
-  border-collapse: collapse;
+.MuiTableHead-root {
+  background-color: #f5f5f5;
 }
 
-.course-table th,
-.course-table td {
-  border: 1px solid #dee2e6;
-  padding: 10px;
-  text-align: left;
+.MuiTableHead-root .MuiTableCell-root {
+  font-weight: 600;
+  color: #444;
+  padding: 16px;
 }
 
-.course-table th {
-  background-color: #f8f9fa;
+.MuiTableBody-root .MuiTableCell-root {
+  padding: 12px 16px;
 }
 
-.course-thumbnail {
-  width: 80px;
-  height: auto;
-  border-radius: 4px;
+.MuiTableRow-root:hover {
+  background-color: rgba(0, 0, 0, 0.02);
 }
 
-.edit-button,
-.delete-button {
-  border: none;
-  padding: 8px 12px;
-  border-radius: 4px;
-  color: #fff;
-  cursor: pointer;
-  margin-right: 5px;
-  transition: background-color 0.3s ease;
+.MuiTablePagination-root {
+  overflow: hidden;
 }
 
-.edit-button {
-  background-color: #28a745;
+.MuiDialogContent-root {
+  padding-top: 16px !important;
 }
 
-.edit-button:hover {
-  background-color: #1e7e34;
-}
-
-.delete-button {
-  background-color: #dc3545;
-}
-
-.delete-button:hover {
-  background-color: #b02a37;
+.form-section-title {
+  margin: 16px 0 8px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+  color: #555;
+  font-size: 1rem;
+  font-weight: 600;
 }

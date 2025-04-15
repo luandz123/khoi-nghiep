@@ -4,7 +4,6 @@ import { CssBaseline } from '@mui/material';
 
 // Layout Components
 import Navbar from './components/navbar/Navbar';
-
 import AdminLayout from './components/admin/AdminLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import Footer from './components/Footer';
@@ -19,7 +18,6 @@ import ProductsPage from './pages/ProductsPage';
 import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
 import ServicesPage from './pages/ServicesPage';
-import RegistrationPage from './pages/RegistrationPage';
 import CancelRegistrationPage from './pages/CancelRegistrationPage';
 import UserProfilePage from './pages/UserProfilePage';
 import UserProfileUpdatePage from './pages/UserProfileUpdatePage';
@@ -49,9 +47,9 @@ function App() {
       <CssBaseline />
       <Router>
         <Routes>
-          {/* Admin Routes - Using AdminLayout */}
-          <Route 
-            path="/admin/*" 
+          {/* Admin Routes */}
+          <Route
+            path="/admin/*"
             element={
               <ProtectedRoute requireAdmin={true}>
                 <AdminLayout />
@@ -60,84 +58,62 @@ function App() {
           >
             <Route index element={<AdminDashboard />} />
             <Route path="dashboard" element={<AdminDashboard />} />
-            
-            {/* Quản lý người dùng */}
             <Route path="users" element={<AdminUserList />} />
-            
-            {/* Quản lý khóa học */}
             <Route path="courses" element={<AdminCourseList />} />
             <Route path="add-course" element={<AdminAddCoursePage />} />
             <Route path="manage-courses" element={<AdminCourseManagementPage />} />
             <Route path="chapters/:courseId" element={<AdminChapterList />} />
             <Route path="lessons/:chapterId" element={<AdminLessonList />} />
-            
-            {/* Quản lý danh mục */}
             <Route path="categories" element={<AdminCategoryPage />} />
-            
-            {/* Quản lý sản phẩm */}
             <Route path="products" element={<AdminProductList />} />
-            
-            {/* Quản lý đơn hàng */}
             <Route path="orders" element={<AdminOrderList />} />
+            {/* Add other admin routes here */}
           </Route>
 
-          {/* Public Routes with Navbar and Footer */}
+          {/* Public Routes */}
           <Route path="/*" element={
             <>
               <Navbar />
-              <div className="main-container" style={{ display: 'flex' }}>
-               
-                <div className="main-content" style={{ flex: 1, marginTop: '70px', padding: '20px' }}>
+              {/* Adjust main content container style as needed */}
+              <div className="main-container" style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 70px)', marginTop: '70px' }}>
+                <div className="main-content" style={{ flex: 1, padding: '20px' }}> {/* Ensure content takes available space */}
                   <Routes>
-                    {/* Trang chính */}
+                    {/* Core Pages */}
                     <Route path="/" element={<HomePage />} />
-                    
-                    {/* Các trang liên quan đến khóa học */}
+                    {/* Special Course Views - These routes pass props to CoursesPage */}
+                    {/* CoursesPage should use these props to set initial query parameters */}
+                    <Route path="/featured-courses" element={<CoursesPage featuredFilter={true} />} />
+                    <Route path="/new-courses" element={<CoursesPage sortByNewest={true} />} />
                     <Route path="/courses" element={<CoursesPage />} />
                     <Route path="/courses/:id" element={<CourseDetailPage />} />
+
                     
-                    {/* Các trang khác */}
+
+                    {/* Other Public Pages */}
                     <Route path="/news" element={<NewsPage />} />
                     <Route path="/products" element={<ProductsPage />} />
-                    <Route path="/products/:category" element={<ProductsPage />} />
+                    <Route path="/products/:category" element={<ProductsPage />} /> {/* Handle category filtering in ProductsPage */}
                     <Route path="/about" element={<AboutPage />} />
                     <Route path="/contact" element={<ContactPage />} />
                     <Route path="/services" element={<ServicesPage />} />
-                    
-                    {/* Trang xác thực */}
+
+                    {/* Auth Pages */}
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
-                    <Route path="/registration" element={<RegistrationPage />} />
                     <Route path="/cancel-registration" element={<CancelRegistrationPage />} />
-                    
-                    {/* Trang người dùng được bảo vệ */}
-                    <Route path="/my-courses" element={
-                      <ProtectedRoute>
-                        <MyCourses />
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/courses/:courseId/learn/:lessonId" element={
-                      <ProtectedRoute>
-                        <LessonPage />
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/profile" element={
-                      <ProtectedRoute>
-                        <UserProfilePage />
-                      </ProtectedRoute>
-                    } />
-                    
-                    <Route path="/profile/update" element={
-                      <ProtectedRoute>
-                        <UserProfileUpdatePage />
-                      </ProtectedRoute>
-                    } />
+
+                    {/* Protected User Pages */}
+                    <Route path="/my-courses" element={<ProtectedRoute><MyCourses /></ProtectedRoute>} />
+                    <Route path="/courses/:courseId/learn/:lessonId" element={<ProtectedRoute><LessonPage /></ProtectedRoute>} />
+                    <Route path="/profile" element={<ProtectedRoute><UserProfilePage /></ProtectedRoute>} />
+                    <Route path="/profile/update" element={<ProtectedRoute><UserProfileUpdatePage /></ProtectedRoute>} />
+
+                    {/* Add a 404 or catch-all route if needed */}
+                    {/* <Route path="*" element={<NotFoundPage />} /> */}
                   </Routes>
                 </div>
+                <Footer /> {/* Footer outside the inner Routes, but inside the main layout */}
               </div>
-              <Footer />
             </>
           } />
         </Routes>

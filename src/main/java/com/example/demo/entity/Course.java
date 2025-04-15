@@ -13,6 +13,8 @@ public class Course {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private Boolean featured = false;
 
     @Column(nullable = false)
     private String title;
@@ -29,8 +31,7 @@ public class Course {
     private String level;
     private Integer studentsCount;
     
-    // Thêm trường featured cho chức năng toggleFeatured
-    private Boolean featured = false;
+    
     
     @ManyToOne
     @JoinColumn(name = "category_id")
